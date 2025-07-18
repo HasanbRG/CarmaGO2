@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Taxi Jobs | CarmaGO</title>
+  <link rel="stylesheet" href="styles/navbar.css" />
+  <link rel="stylesheet" href="styles/taxi-job.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="auth.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    /* Toast notification styles */
+    #toast-container {
+      position: fixed;
+      right: 30px;
+      bottom: 30px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .toast {
+      min-width: 220px;
+      max-width: 340px;
+      background: #222;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.11);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(30px) scale(0.95);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.28s, transform 0.28s;
+    }
+    .toast.toast-success { background: #43b54b; color: #fff; }
+    .toast.toast-error { background: #d62f2f; color: #fff; }
+    .toast.toast-info { background: #3465a4; color: #fff; }
+    .toast.toast-warning { background: #eab307; color: #222; }
+    .toast.toast-show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .toast .toast-icon { font-size: 19px; }
+    
+    /* Active ride indicator - Enhanced visibility */
+    .car-card.active-ride {
+      border: 2px solid #2e7d32;
+      background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
+      position: relative;
+    }
+    
+    .car-card.active-ride .car-name,
+    .car-card.active-ride .car-id,
+    .car-card.active-ride .car-model {
+      color: #1b5e20 !important;
+      font-weight: 600;
+    }
+    
+    .active-ride-indicator {
+      background: linear-gradient(135deg, #2e7d32, #388e3c);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-top: 12px;
+      box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+    }
+    
+    .active-ride-indicator .ride-info {
+      color: white;
+    }
+    
+    .active-ride-indicator .ride-details {
+      margin-top: 8px;
+      font-size: 0.85em;
+      line-height: 1.4;
+    }
+    
+    .active-ride-indicator .ride-details div {
+      color: #e8f5e8;
+      margin-bottom: 4px;
+    }
+    
+    .phase-badge {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      margin-right: 8px;
+    }
+    
+    .progress-info {
+      color: #c8e6c9;
+    }
+    
+    /* Enhanced Modal Styles - Fixed Centering */
+    .popup {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(0, 0, 0, 0.8) !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      z-index: 10000 !important;
+      backdrop-filter: blur(5px);
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .popup.hidden {
+      display: none !important;
+    }
+    
+    .popup-content {
+      background: white;
+      border-radius: 20px;
+      padding: 0;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: slideInScale 0.4s ease-out;
+      position: relative;
+      margin: auto;
+      /* Ensure content is centered */
+      transform: none !important;
+    }
+    
+    .popup-header {
+      background: linear-gradient(135deg, #2196f3, #1976d2);
+      color: white;
+      padding: 2rem;
+      border-radius: 20px 20px 0 0;
+      text-align: center;
+      position: relative;
+    }
+    
+    .popup-header h2 {
+      margin: 0 0 1rem 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .timer-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .timer-circle {
+      position: relative;
+      width: 60px;
+      height: 60px;
+    }
+    
+    .timer-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: rotate(-90deg);
+    }
+    
+    .timer-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: white;
+    }
+    
+    .timer-warning {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #e3f2fd;
+      font-weight: 500;
+    }
+    
+    .ride-details {
+      padding: 2rem;
+    }
+    
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    
+    .detail-label {
+      font-weight: 600;
+      color: #555;
+      font-size: 0.9rem;
+    }
+    
+    .detail-value {
+      font-weight: 500;
+      color: #333;
+      text-align: right;
+      max-width: 60%;
+      word-break: break-word;
+    }
+    
+    .detail-value.fare {
+      color: #2e7d32;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    
+    .popup-buttons {
+      display: flex;
+      gap: 1rem;
+      padding: 1.5rem 2rem 2rem 2rem;
+    }
+    
+    .accept-btn {
+      flex: 1;
+      background: linear-gradient(135deg, #4caf50, #2e7d32);
+      color: white;
+      border: none;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .accept-btn:hover {
+      background: linear-gradient(135deg, #43a047, #2e7d32);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    }
+    
+    .decline-btn {
+      flex: 1;
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      color: white;
+      border: none;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .decline-btn:hover {
+      background: linear-gradient(135deg, #e53935, #c62828);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideInScale {
+      from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    @keyframes timerProgress {
+      from {
+        stroke-dashoffset: 0;
+      }
+      to {
+        stroke-dashoffset: 157.08;
+      }
+    }
+    
+    .cancel-ride-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+      align-items: flex-start;
+    }
+    
+    .cancel-confirmation {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    
+    .cancel-ride-btn {
+      background: #d32f2f;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .cancel-ride-btn:hover {
+      background: #b71c1c;
+      transform: translateY(-1px);
+    }
+    
+    .cancel-ride-btn.confirming {
+      background: #ff5722;
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .confirm-cancel-btn {
+      background: #ff5722;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .confirm-cancel-btn:hover {
+      background: #e64a19;
+    }
+    
+    .keep-ride-btn {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .keep-ride-btn:hover {
+      background: #388e3c;
+    }
+    
+    /* Enhanced Car Cards */
+    .car-card {
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .car-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      border-color: #2e7d32;
+    }
+    
+    .car-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #2e7d32, #4caf50);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .car-card:hover::before {
+      opacity: 1;
+    }
+    
+    .car-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    
+    .car-info {
+      flex: 1;
+    }
+    
+    .car-name {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 4px;
+    }
+    
+    .car-id {
+      font-size: 0.9em;
+      color: #7f8c8d;
+      margin-bottom: 2px;
+    }
+    
+    .car-model {
+      font-size: 0.9em;
+      color: #34495e;
+    }
+    
+    .car-status-badges {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+    
+    .battery-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: bold;
+    }
+    
+    .battery-critical { background: #ffebee; color: #c62828; }
+    .battery-low { background: #fff3e0; color: #ef6c00; }
+    .battery-medium { background: #fff8e1; color: #f57f17; }
+    .battery-good { background: #e8f5e8; color: #2e7d32; }
+    
+    .status-indicator {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8em;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-idle { background: #e3f2fd; color: #1976d2; }
+    .status-working { background: #fff3e0; color: #f57c00; }
+    .status-charging { background: #e8f5e8; color: #388e3c; }
+    .status-maintenance { background: #fce4ec; color: #c2185b; }
+    
+    /* Car tracking modal - Enhanced */
+    .car-tracking-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(4px);
+    }
+    
+    .car-tracking-content {
+      background: white;
+      width: 95%;
+      max-width: 1000px;
+      height: 90%;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .tracking-header {
+      padding: 20px 24px;
+      border-bottom: 2px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, #2e7d32, #388e3c);
+      color: white;
+    }
+    
+    .tracking-header h2 {
+      margin: 0;
+      font-size: 1.4em;
+      font-weight: 600;
+    }
+    
+    .tracking-map {
+      flex: 1;
+      position: relative;
+      min-height: 400px;
+    }
+    
+    .tracking-info {
+      padding: 20px 24px;
+      background: #f8f9fa;
+      border-top: 2px solid #e0e0e0;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .close-tracking {
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      cursor: pointer;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    
+    .close-tracking:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.5);
+      transform: rotate(90deg);
+    }
+    
+    .car-details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .detail-item {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      text-align: center;
+    }
+    
+    .detail-label {
+      font-size: 0.85em;
+      color: #666;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    
+    .detail-value {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    
+    /* Responsive improvements for many cars */
+    @media (max-width: 768px) {
+      .car-card {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      
+      .car-tracking-content {
+        width: 98%;
+        height: 95%;
+      }
+      
+      .tracking-header {
+        padding: 16px;
+      }
+      
+      .tracking-info {
+        padding: 16px;
+      }
+    }
+    
+    /* Scrollable cars container for many cars */
+    .cars-panel {
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+    
+    .cars-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .cars-panel::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    .cars-panel::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+    }
+    
+    .cars-panel::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+  </style>
+</head>
+<body>
+
+<div class="navbar" data-page="taxi">
+  <div class="nav-container">
+    <a href="HomePage.html" class="logo">
+      <div class="logo-circle"></div>
+      <span class="logo-text">CarmaGO</span>
+    </a>
+    
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    
+    <nav>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="HomePage.html"><i class="fas fa-home nav-icon"></i>Home</a></li>
+        <li><a href="req-ride.html" data-auth-required="true"><i class="fas fa-car nav-icon"></i>Request Ride</a></li>
+        <li><a href="account.html" data-auth-required="true"><i class="fas fa-user nav-icon"></i>Account</a></li>
+        <li><a href="locate-car.html" data-auth-required="true"><i class="fas fa-map-marker-alt nav-icon"></i>Locate Cars</a></li>
+        <li><a href="taxi-job.html" class="active" data-auth-required="true"><i class="fas fa-taxi nav-icon"></i>Taxi Jobs</a></li>
+      </ul>
+    </nav>
+    
+    <div class="auth-actions">
+      <button class="signup-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i>Logout
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Map Section -->
+<div class="map-container">
+  <div id="map"></div>
+</div>
+
+<!-- Cars Title -->
+<div class="cars-heading">
+  <h2><i class="fa-solid fa-car-side" style="margin-right:8px;color:#7C705B"></i>My Cars</h2>
+  <div class="debug-controls" style="display: flex; gap: 10px; align-items: center;">
+    <button onclick="validateActiveRides()" style="padding: 6px 12px; background: #2196f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+      <i class="fa-solid fa-check"></i> Validate Rides
+    </button>
+    <button onclick="clearStaleActiveRides()" style="padding: 6px 12px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+      <i class="fa-solid fa-broom"></i> Clear All
+    </button>
+    <span id="activeRideCount" style="font-size: 12px; color: #666;"></span>
+  </div>
+</div>
+
+<!-- Cars Panel -->
+<div class="cars-panel" id="myCarsContainer">
+  <div class="loader">
+    <i class="fa-solid fa-spinner fa-spin"></i> Loading your cars...
+  </div>
+</div>
+
+<!-- Enhanced Popup for Ride Request with Timer -->
+<div id="rideRequestPopup" class="popup hidden">
+  <div class="popup-content">
+    <div class="popup-header">
+      <h2>🚕 New Ride Request</h2>
+      <div class="timer-container">
+        <div class="timer-circle">
+          <div class="timer-text">
+            <span id="timerSeconds">20</span>s
+          </div>
+          <svg class="timer-svg" width="60" height="60">
+            <circle cx="30" cy="30" r="25" stroke="#e0e0e0" stroke-width="4" fill="none"/>
+            <circle id="timerProgress" cx="30" cy="30" r="25" stroke="#f44336" stroke-width="4" fill="none" 
+                    stroke-dasharray="157.08" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+          </svg>
+        </div>
+        <p class="timer-warning">Expires in <span id="timerSecondsText">20</span> seconds</p>
+      </div>
+    </div>
+    
+    <div class="ride-details">
+      <div class="detail-row">
+        <span class="detail-label">👤 Rider:</span>
+        <span id="riderEmail" class="detail-value">Loading...</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">� Car:</span>
+        <span id="carName" class="detail-value">Loading...</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">�📍 Pickup:</span>
+        <span id="pickupLocation" class="detail-value">Loading...</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">🎯 Dropoff:</span>
+        <span id="dropoffLocation" class="detail-value">Loading...</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">💰 Fare:</span>
+        <span id="fareAmount" class="detail-value fare">£--</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">🕒 ETA to Pickup:</span>
+        <span id="etaTime" class="detail-value">-- min</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">⏱️ Journey Time:</span>
+        <span id="estimatedTime" class="detail-value">--</span>
+      </div>
+    </div>
+    
+    <div class="popup-buttons">
+      <button id="acceptRideBtn" class="accept-btn">
+        <i class="fa-solid fa-check"></i>
+        Accept Ride
+      </button>
+      <button id="declineRideBtn" class="decline-btn">
+        <i class="fa-solid fa-times"></i>
+        Decline
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Car Tracking Modal (hidden by default) -->
+<div id="carTrackingModal" class="car-tracking-modal">
+  <div class="car-tracking-content">
+    <div class="tracking-header">
+      <h3>Live Car Tracking</h3>
+      <button class="close-tracking" onclick="closeTrackingModal()">&times;</button>
+    </div>
+    <div class="tracking-map" id="trackingMap"></div>
+  </div>
+</div>
+
+<script>
+  const userId = localStorage.getItem("loggedInUserId");
+  const userEmail = localStorage.getItem("loggedInUser");
+  let map;
+  let carMarkers = {};
+  let socket;
+  let currentRideId = null;
+  let currentTargetCarId = null;
+  let activeRides = {}; // Track active rides by car ID
+  let trackingInterval = null; // Interval for tracking updates
+  let userCars = []; // Store user's cars data
+
+  // Car tracking variables
+  let trackingMap;
+  let trackingCarMarker;
+  let currentTrackingCarId = null;
+  let trackingSocket = null;
+
+  // Timer variables
+  let rideRequestTimer = null;
+  let timerDuration = 20; // seconds
+  let timeRemaining = timerDuration;
+
+  // Timer functions
+  function startRideRequestTimer() {
+    // Reset timer
+    timeRemaining = timerDuration;
+    updateTimerDisplay();
+    
+    // Clear any existing timer
+    if (rideRequestTimer) {
+      clearInterval(rideRequestTimer);
+    }
+    
+    // Start countdown
+    rideRequestTimer = setInterval(() => {
+      timeRemaining--;
+      updateTimerDisplay();
+      
+      if (timeRemaining <= 0) {
+        clearInterval(rideRequestTimer);
+        handleTimerExpiry();
+      }
+    }, 1000);
+  }
+  
+  function stopRideRequestTimer() {
+    if (rideRequestTimer) {
+      clearInterval(rideRequestTimer);
+      rideRequestTimer = null;
+    }
+  }
+  
+  function updateTimerDisplay() {
+    const timerSecondsEl = document.getElementById("timerSeconds");
+    const timerSecondsTextEl = document.getElementById("timerSecondsText");
+    const timerProgressEl = document.getElementById("timerProgress");
+    
+    if (timerSecondsEl) timerSecondsEl.textContent = timeRemaining;
+    if (timerSecondsTextEl) timerSecondsTextEl.textContent = timeRemaining;
+    
+    // Update progress circle
+    if (timerProgressEl) {
+      const circumference = 157.08; // 2 * PI * radius (25)
+      const progress = (timerDuration - timeRemaining) / timerDuration;
+      const offset = circumference * progress;
+      timerProgressEl.style.strokeDashoffset = offset;
+      
+      // Change color as time runs out
+      if (timeRemaining <= 5) {
+        timerProgressEl.style.stroke = "#f44336"; // Red
+      } else if (timeRemaining <= 10) {
+        timerProgressEl.style.stroke = "#ff9800"; // Orange
+      } else {
+        timerProgressEl.style.stroke = "#2196f3"; // Blue
+      }
+    }
+  }
+  
+  function handleTimerExpiry() {
+    console.log("Ride request timer expired");
+    showToast("Ride request expired", "warning");
+    
+    // Auto-decline the ride
+    declineRideRequest();
+  }
+
+  if (!userEmail || !userId) {
+    showToast("Please log in first.", "error");
+    window.location.href = "logInpage.html";
+  }
+
+  // Restore active rides immediately on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Page loaded - restoring active rides...');
+    restoreActiveRides();
+    updateActiveRideCount();
+  });
+
+  function logout() {
+    localStorage.clear();
+    showToast("You have been logged out successfully!", "success");
+    setTimeout(() => {
+      window.location.href = "logInpage.html";
+    }, 1500);
+  }
+
+  // Mobile menu toggle
+  function toggleMobileMenu() {
+    const navLinks = document.getElementById("nav-links");
+    const toggleBtn = document.querySelector(".mobile-menu-toggle");
+    
+    navLinks.classList.toggle("mobile-active");
+    toggleBtn.classList.toggle("active");
+  }
+
+  // Function to update individual car card without full reload
+  function updateCarCard(carId, updates) {
+    const carCard = document.querySelector(`[data-car-id="${carId}"]`);
+    if (!carCard) {
+      console.warn(`Car card not found for carId: ${carId}`);
+      
+      // Check if this car should exist in our userCars array
+      const carExists = userCars.some(car => car._id === carId);
+      if (carExists) {
+        console.log(`Car ${carId} exists in userCars but card not found. Triggering reload...`);
+        // Delay reload to avoid race conditions
+        setTimeout(() => loadUserCars(), 500);
+      }
+      return;
+    }
+
+    // Update battery display
+    if (updates.battery !== undefined) {
+      const batteryIndicator = carCard.querySelector('.battery-indicator');
+      if (batteryIndicator) {
+        const batteryLevel = parseInt(updates.battery) || 0;
+        const batteryClass = getBatteryClass(batteryLevel);
+        const batteryIcon = getBatteryIcon(batteryLevel);
+        
+        batteryIndicator.className = `battery-indicator ${batteryClass}`;
+        batteryIndicator.innerHTML = `<i class="fa-solid fa-battery-${batteryIcon}"></i> ${batteryLevel}%`;
+      }
+    }
+
+    // Update status display
+    if (updates.status) {
+      const statusIndicator = carCard.querySelector('.status-indicator');
+      if (statusIndicator) {
+        const statusClass = getStatusClass(updates.status);
+        statusIndicator.className = `status-indicator ${statusClass}`;
+        statusIndicator.innerHTML = `<i class="fa-solid fa-circle"></i> ${escapeHtml(updates.status)}`;
+      }
+    }
+
+    // Update ride progress and ETA
+    if (updates.progress !== undefined || updates.eta !== undefined) {
+      const progressInfo = carCard.querySelector('.progress-info');
+      if (progressInfo && activeRides[carId]) {
+        const progress = updates.progress !== undefined ? Math.round(updates.progress * 100) + '%' : activeRides[carId].progress || '0%';
+        const eta = updates.eta !== undefined ? updates.eta : activeRides[carId].eta || '--';
+        progressInfo.textContent = `${progress} • ETA: ${eta}`;
+        
+        // Update activeRides data
+        if (updates.progress !== undefined) activeRides[carId].progress = progress;
+        if (updates.eta !== undefined) activeRides[carId].eta = eta;
+      }
+    }
+
+    // Update ride phase
+    if (updates.phase) {
+      const phaseBadge = carCard.querySelector('.phase-badge');
+      if (phaseBadge && activeRides[carId]) {
+        phaseBadge.textContent = escapeHtml(updates.phase);
+        activeRides[carId].phase = updates.phase;
+      }
+    }
+  }
+
+  async function loadUserCars() {
+    try {
+      // Show loading state
+      const container = document.getElementById("myCarsContainer");
+      container.innerHTML = "<div class='loader'><i class='fa-solid fa-spinner fa-spin'></i> Loading your cars...</div>";
+      
+      // Correct API URL with error handling
+      const res = await fetch(`http://localhost:5001/cars/user/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      const cars = await res.json();
+      
+      // Validate response
+      if (!Array.isArray(cars)) {
+        throw new Error('Invalid response format: expected array of cars');
+      }
+      
+      // Store cars data globally for tracking functionality
+      userCars = cars;
+
+      if (!cars.length) {
+        container.innerHTML = `
+          <div class='empty-msg' style='text-align: center; padding: 40px; color: #666;'>
+            <i class='fa fa-car' style='font-size: 3em; margin-bottom: 16px; opacity: 0.5;'></i>
+            <h3>No Cars Available</h3>
+            <p>You don't own any cars yet. Add some cars to start accepting ride requests!</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = cars.map(car => {
+        // Validate car data
+        if (!car._id || !car.name) {
+          console.warn('Invalid car data:', car);
+          return ''; // Skip invalid cars
+        }
+        
+        const isActiveRide = activeRides[car._id];
+        const batteryLevel = parseInt(car.battery) || 0;
+        const batteryClass = getBatteryClass(batteryLevel);
+        const statusClass = getStatusClass(car.status);
+        
+        // Check for low battery and send notification
+        checkBatteryStatus(car);
+        
+        return `
+          <div class="car-card ${isActiveRide ? 'active-ride' : ''}" onclick="openCarTracking('${car._id}')" data-car-id="${car._id}">
+            <div class="car-card-header">
+              <div class="car-info">
+                <div class="car-name">${escapeHtml(car.name)}</div>
+                <div class="car-id">ID: ${escapeHtml(car.carId || 'N/A')}</div>
+                <div class="car-model">Model: ${escapeHtml(car.model || 'Unknown')}</div>
+              </div>
+              <div class="car-status-badges">
+                <div class="battery-indicator ${batteryClass}">
+                  <i class="fa-solid fa-battery-${getBatteryIcon(batteryLevel)}"></i>
+                  ${batteryLevel}%
+                </div>
+                <div class="status-indicator ${statusClass}">
+                  <i class="fa-solid fa-circle"></i>
+                  ${escapeHtml(car.status || 'Unknown')}
+                </div>
+              </div>
+            </div>
+            ${isActiveRide ? `
+              <div class="active-ride-indicator">
+                <div class="ride-info">
+                  <strong>🚗 Active Ride</strong>
+                  <div class="ride-details">
+                    <div>📍 ${escapeHtml(isActiveRide.pickupAddress || isActiveRide.pickup || 'Pickup')}</div>
+                    <div>🎯 ${escapeHtml(isActiveRide.dropoffAddress || isActiveRide.dropoff || 'Dropoff')}</div>
+                    <div class="ride-status">
+                      <span class="phase-badge">${escapeHtml(isActiveRide.phase || 'In Progress')}</span>
+                      <span class="progress-info">${escapeHtml(isActiveRide.progress || '0%')} • ETA: ${escapeHtml(isActiveRide.eta || '--')}</span>
+                    </div>
+                    ${isActiveRide.riderEmail ? `<div>👤 ${escapeHtml(isActiveRide.riderEmail)}</div>` : ''}
+                    ${isActiveRide.fareEstimate ? `<div>💰 £${escapeHtml(isActiveRide.fareEstimate)}</div>` : ''}
+                  </div>
+                </div>
+                <div class="cancel-ride-container">
+                  <button class="cancel-ride-btn" onclick="event.stopPropagation(); showCancelConfirmation('${car._id}', '${isActiveRide.rideId}')">
+                    <i class="fa-solid fa-times"></i> Cancel Ride
+                  </button>
+                  <div id="cancelConfirm-${car._id}" class="cancel-confirmation" style="display: none;">
+                    <button class="confirm-cancel-btn" onclick="event.stopPropagation(); confirmCancelRide('${car._id}', '${isActiveRide.rideId}')">
+                      ✓ Yes, Cancel
+                    </button>
+                    <button class="keep-ride-btn" onclick="event.stopPropagation(); hideCancelConfirmation('${car._id}')">
+                      ✗ Keep Ride
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).filter(html => html).join(""); // Filter out empty strings from invalid cars
+
+      // Remove previous markers with error handling
+      try {
+        Object.values(carMarkers).forEach(marker => {
+          if (marker && marker.setMap) {
+            marker.setMap(null);
+          }
+        });
+      } catch (error) {
+        console.warn('Error removing markers:', error);
+      }
+      carMarkers = {}; // Reset markers
+
+      // Plot car markers on map with error handling
+      cars.forEach(car => {
+        try {
+          if (!car.location?.lat || !car.location?.lng) {
+            console.warn(`Car ${car.name} has invalid location:`, car.location);
+            return; // Skip invalid locations
+          }
+
+          const marker = new google.maps.Marker({
+            position: { lat: parseFloat(car.location.lat), lng: parseFloat(car.location.lng) },
+            map,
+            title: car.name,
+            icon: {
+              url: "https://img.icons8.com/color/48/car--v1.png",
+              scaledSize: new google.maps.Size(40, 40),
+            }
+          });
+          carMarkers[car._id] = marker; // Store markers
+        } catch (error) {
+          console.error(`Error creating marker for car ${car.name}:`, error);
+        }
+      });
+
+    } catch (err) {
+      console.error("🚨 Error loading cars:", err);
+      const container = document.getElementById("myCarsContainer");
+      
+      let errorMessage = "Could not load your cars. ";
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        errorMessage += "Please check your internet connection and server status.";
+      } else if (err.message.includes('HTTP 404')) {
+        errorMessage += "Cars service not found. Please contact support.";
+      } else if (err.message.includes('HTTP 500')) {
+        errorMessage += "Server error. Please try again later.";
+      } else {
+        errorMessage += "Please refresh the page or contact support if the problem persists.";
+      }
+      
+      container.innerHTML = `
+        <div class='error-msg' style='text-align: center; padding: 40px; color: #d32f2f; background: #ffebee; border-radius: 8px; border: 1px solid #ffcdd2;'>
+          <i class='fa fa-exclamation-triangle' style='font-size: 2em; margin-bottom: 16px;'></i>
+          <h3>Failed to Load Cars</h3>
+          <p>${errorMessage}</p>
+          <button onclick="loadUserCars()" style="margin-top: 12px; padding: 8px 16px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            <i class="fa fa-refresh"></i> Retry
+          </button>
+        </div>`;
+      
+      showToast(`Failed to load cars: ${err.message}`, "error");
+    }
+  }
+
+  // Custom cancel confirmation functions
+  function showCancelConfirmation(carId) {
+    const confirmDiv = document.getElementById(`cancelConfirm-${carId}`);
+    if (confirmDiv) {
+      confirmDiv.style.display = 'flex';
+      confirmDiv.style.gap = '8px';
+    }
+  }
+  
+  function hideCancelConfirmation(carId) {
+    const confirmDiv = document.getElementById(`cancelConfirm-${carId}`);
+    if (confirmDiv) {
+      confirmDiv.style.display = 'none';
+    }
+  }
+  
+  function confirmCancelRide(carId, rideId) {
+    hideCancelConfirmation(carId);
+    cancelActiveRide(carId, rideId);
+  }
+
+  // Enhanced utility functions
+  function getBatteryClass(battery) {
+    const level = parseInt(battery) || 0;
+    if (level <= 15) return "battery-critical";
+    if (level <= 30) return "battery-low";
+    if (level <= 60) return "battery-medium";
+    return "battery-good";
+  }
+  
+  function getBatteryIcon(battery) {
+    const level = parseInt(battery) || 0;
+    if (level <= 15) return "empty";
+    if (level <= 30) return "quarter";
+    if (level <= 60) return "half";
+    if (level <= 85) return "three-quarters";
+    return "full";
+  }
+  
+  function getStatusClass(status) {
+    if (!status) return "status-idle";
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('working') || statusLower.includes('busy')) return "status-working";
+    if (statusLower.includes('charging')) return "status-charging";
+    if (statusLower.includes('maintenance') || statusLower.includes('repair')) return "status-maintenance";
+    return "status-idle";
+  }
+  
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  // Battery monitoring and notifications
+  const batteryNotifications = new Set(); // Track sent notifications
+  
+  function checkBatteryStatus(car) {
+    if (!car || !car._id) return;
+    
+    const battery = parseInt(car.battery) || 0;
+    const carId = car._id;
+    
+    // Critical battery (15% or less)
+    if (battery <= 15 && !batteryNotifications.has(`${carId}-critical`)) {
+      showToast(`🔋 Critical Battery Alert: ${car.name} has only ${battery}% battery remaining!`, "error");
+      batteryNotifications.add(`${carId}-critical`);
+      
+      // Remove from other notification sets
+      batteryNotifications.delete(`${carId}-low`);
+      batteryNotifications.delete(`${carId}-medium`);
+    }
+    // Low battery (30% or less)
+    else if (battery <= 30 && !batteryNotifications.has(`${carId}-low`) && !batteryNotifications.has(`${carId}-critical`)) {
+      showToast(`🔋 Low Battery: ${car.name} has ${battery}% battery. Consider charging soon.`, "warning");
+      batteryNotifications.add(`${carId}-low`);
+      
+      // Remove from other notification sets
+      batteryNotifications.delete(`${carId}-medium`);
+    }
+    // Medium battery (60% or less) - only once per session
+    else if (battery <= 60 && !batteryNotifications.has(`${carId}-medium`) && !batteryNotifications.has(`${carId}-low`) && !batteryNotifications.has(`${carId}-critical`)) {
+      showToast(`🔋 Battery Notice: ${car.name} has ${battery}% battery.`, "info");
+      batteryNotifications.add(`${carId}-medium`);
+    }
+    
+    // Clear notifications when battery is charged above thresholds
+    if (battery > 60) {
+      batteryNotifications.delete(`${carId}-critical`);
+      batteryNotifications.delete(`${carId}-low`);
+      batteryNotifications.delete(`${carId}-medium`);
+    } else if (battery > 30) {
+      batteryNotifications.delete(`${carId}-critical`);
+      batteryNotifications.delete(`${carId}-low`);
+    } else if (battery > 15) {
+      batteryNotifications.delete(`${carId}-critical`);
+    }
+  }
+  
+  // Error handling for socket connections
+  function handleSocketError(error, context = '') {
+    console.error(`Socket error ${context}:`, error);
+    
+    let errorMessage = 'Connection issue occurred';
+    if (context) errorMessage += ` during ${context}`;
+    
+    if (error.type === 'TransportError') {
+      errorMessage += '. Please check your internet connection.';
+    } else if (error.type === 'timeout') {
+      errorMessage += '. Server response timeout.';
+    }
+    
+    showToast(errorMessage, "error");
+  }
+  
+  // Retry mechanism for failed operations
+  async function retryOperation(operation, maxRetries = 3, delay = 1000) {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        console.warn(`Operation failed (attempt ${i + 1}/${maxRetries}):`, error);
+        
+        if (i === maxRetries - 1) {
+          throw error; // Last attempt failed
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      }
+    }
+  }
+
+  // Helper function to categorize battery status (legacy support)
+  function getBatteryClass_legacy(battery) {
+    if (battery > 50) return "badge-green";
+    if (battery > 20) return "badge-orange";
+    return "badge-red";
+  }
+
+  // Connect to Socket.IO server
+  socket = io("http://localhost:5001", { 
+    transports: ["websocket"],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    reconnectionAttempts: 5
+  });
+
+  // Enhanced socket event handlers with error handling
+  socket.on("connect", () => {
+    console.log("Connected to server for taxi jobs!");
+    console.log("Socket ID:", socket.id);
+    
+    try {
+      // Register as a driver by sending the userId
+      socket.emit("register-driver", { 
+        userId: userId,
+        email: userEmail 
+      });
+      
+      // Check for any saved active rides and restore them FIRST
+      restoreActiveRides();
+      
+      // Then load cars with the restored active ride information
+      setTimeout(() => {
+        loadUserCars();
+      }, 100);
+      
+      showToast("Connected to ride service successfully!", "success");
+    } catch (error) {
+      handleSocketError(error, 'connection setup');
+    }
+  });
+
+  socket.on("connect_error", (error) => {
+    handleSocketError(error, 'connection');
+  });
+
+  socket.on("connect_timeout", () => {
+    console.error("Socket.IO connection timeout");
+    showToast("Connection timeout. Please check your internet connection.", "error");
+  });
+
+  socket.on("error", (error) => {
+    handleSocketError(error, 'general operation');
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("Disconnected from server:", reason);
+    
+    let message = "Disconnected from ride service";
+    if (reason === 'io server disconnect') {
+      message += " (server restart)";
+    } else if (reason === 'transport close') {
+      message += " (connection lost)";
+    }
+    
+    showToast(message, "warning");
+  });
+
+  socket.on("reconnect", (attemptNumber) => {
+    console.log("Reconnected to server after", attemptNumber, "attempts");
+    showToast("Reconnected to ride service!", "success");
+    
+    // Restore active rides first, then refresh data after reconnection
+    restoreActiveRides();
+    setTimeout(() => {
+      loadUserCars();
+    }, 1000);
+  });
+
+  socket.on("new-ride-request", (data) => {
+    try {
+      console.log("Received new ride request:", data);
+      console.log("Current user ID:", userId);
+      console.log("Target car owner ID:", data.targetCarOwnerId);
+      
+      // Validate request data
+      if (!data.rideId || !data.targetCarId || !data.targetCarOwnerId) {
+        console.error("Invalid ride request data:", data);
+        showToast("Received invalid ride request", "error");
+        return;
+      }
+      
+      // Only show popup if this request is for one of our cars
+      if (data.targetCarOwnerId !== userId) {
+        console.log("Ignoring request for different car owner");
+        return;
+      }
+      
+      // Store the target car ID and ride ID
+      currentTargetCarId = data.targetCarId;
+      currentRideId = data.rideId;
+
+      // Update popup content with validation
+      const popup = document.getElementById("rideRequestPopup");
+      const pickupElem = document.getElementById("pickupLocation");
+      const dropoffElem = document.getElementById("dropoffLocation");
+      const fareElem = document.getElementById("fareAmount");
+      const etaElem = document.getElementById("etaTime");
+      const carNameElem = document.getElementById("carName");
+
+      if (!popup || !pickupElem || !dropoffElem || !fareElem || !etaElem || !carNameElem) {
+        console.error("Could not find popup elements!");
+        showToast("Popup display error", "error");
+        return;
+      }
+
+      pickupElem.textContent = data.pickupAddress || "Loading...";
+      dropoffElem.textContent = data.dropoffAddress || "Loading...";
+      fareElem.textContent = `£${data.fareEstimate?.toFixed(2) || "--"}`;
+      
+      // Update rider info if element exists
+      const riderElem = document.getElementById("riderEmail");
+      if (riderElem) {
+        riderElem.textContent = data.riderEmail || "Unknown rider";
+      }
+      
+      // Get the target car's current location for accurate ETA calculation
+      const targetCar = userCars?.find(car => car._id === data.targetCarId);
+      const carLat = targetCar?.location?.lat || data.carLat || 51.4545;
+      const carLng = targetCar?.location?.lng || data.carLng || -2.5879;
+      
+      // Update car name in the modal
+      if (targetCar && targetCar.name) {
+        carNameElem.textContent = targetCar.name;
+      } else {
+        carNameElem.textContent = "Unknown Car";
+      }
+      
+      // Update estimated time element if it exists (journey time from pickup to dropoff)
+      const estimatedTimeElem = document.getElementById("estimatedTime");
+      if (estimatedTimeElem) {
+        // Calculate realistic journey time from pickup to dropoff
+        const journeyTime = calculateJourneyTime(data.pickupLat || 51.4545, data.pickupLng || -2.5879, 
+                                                data.dropoffLat || 51.4545, data.dropoffLng || -2.5879);
+        estimatedTimeElem.textContent = journeyTime;
+      }
+      
+      // Calculate ETA to pickup using car's current location
+      const etaToPickup = calculateETA(carLat, carLng, 
+                                      data.pickupLat || 51.4545, data.pickupLng || -2.5879);
+      etaElem.textContent = etaToPickup;
+
+      // Add active class to make popup visible
+      popup.classList.remove("hidden");
+      
+      // Force proper positioning and display
+      popup.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        z-index: 10000 !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+      `;
+      
+      console.log("🚗 Showing ride request popup");
+
+      // Start the 20-second timer
+      startRideRequestTimer();
+
+      // Play a notification sound with error handling
+      try {
+        const audio = new Audio('data:audio/wav;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQRDiMcCBcH3Cc+CDv/7xA4Tvh9Rz/y8QADBwMWgQAZG/ILNAARQ4GLTcDeIIIhxGOBAuD7hOfBB3/94gcJ3w+o5/5eIAIAAAVwWgQAVQ2ORaIQwEMAJiDg95G4nQL7mQVWI6GwRcfsZAcsKkJvxgxEjzFUgfHoSQ9Qq7KNwqHwuB13MA4a1q/DmBrHgPcmjiGoh//EwC5nGPEmS4RcfkVKOhJf+WOgoxJclFz3kgn//dBA+ya1GhurNn8zb//9NNutNuhz31f////9vt///z+IdAEAAAK4LQIAKobHItEIYCGAExBwe8jcToF9zIKrEdDYIuP2MgOWFSE34wYiR5iqQPj0JIeoVdlG4VD4XA67mAcNa1fhzA1jwHuTRxDUQ//iYBczjHiTJcIuPyKlHQkv/LHQUYkuSi57yQT//uggfZNajQ3Vmz+Zt//+mm3Wm3Q576v////+32///5/EOgAAADVghQAAAAA//uQZAUAB1WI0PZugAAAAAoQwAAAEk3nRd2qAAAAACiDgAAAAAAABCqEEQRLCgwpBGMlJkIz8jKhGvj4k6jzRnqasNKIeoh5gI7BJaC1A1AoNBjJgbyApVS4IDlZgDU5WUAxEKDNmmALHzZp0Fkz1FMTmGFl1FMEyodIavcCAUHDWrKAIA4aa2oCgILEBupZgHvAhEBcZ6joQBxS76AgccrFlczBvKLC0QI2cBoCFvfTDAo7eoOQInqDPBtvrDEZBNYN5xwNwxQRfw8ZQ5wQVLvO8OYU+mHvFLlDh05Mdg7BT6YrRPpCBznMB2r//xKJjyyOh+cImr2/4doscwD6neZjuZR4AgAABYAAAABy1xcdQtxYBYYZdifkUDgzzXaXn98Z0oi9ILU5mBjFANmRwlVJ3/6jYDAmxaiDG3/6xjQQCCKkRb/6kg/wW+kSJ5//rLobkLSiKmqP/0ikJuDaSaSf/6JiLYLEYnW/+kXg1WRVJL/9EmQ1YZIsv/6Qzwy5qk7/+tEU0nkls3/zIUMPKNX/6yZLf+kFgAfgGyLFAUwY//uQZAUABcd5UiNPVXAAAApAAAAAE0VZQKw9ISAAACgAAAAAVQIygIElVrFkBS+Jhi+EAuu+lKAkYUEIsmEAEoMeDmCETMvfSHTGkF5RWH7kz/ESHWPAq/kcCRhqBtMdokPdM7vil7RG98A2sc7zO6ZvTdM7pmOUAZTnJW+NXxqmd41dqJ6mLTXxrPpnV8avaIf5SvL7pndPvPpndJR9Kuu8fePvuiuhorgWjp7Mf/PRjxcFCPDkW31srioCExivv9lcwKEaHsf/7ow2Fl1T/9RkXgEhYElAoCLFtMArxwivDJJ+bR1HTKJdlEoTELCIqgEwVGSQ+hIm0NbK8WXcTEI0UPoa2NbG4y2K00JEWbZavJXkYaqo9CRHS55FcZTjKEk3NKoCYUnSQ0rWxrZbFKbKIhOKPZe1cJKzZSaQrIyULHDZmV5K4xySsDRKWOruanGtjLJXFEmwaIbDLX0hIPBUQPVFVkQkDoUNfSoDgQGKPekoxeGzA4DUvnn4bxzcZrtJyipKfPNy5w+9lnXwgqsiyHNeSVpemw4bWb9psYeq//uQZBoABQt4yMVxYAIAAAkQoAAAHvYpL5m6AAgAACXDAAAAD59jblTirQe9upFsmZbpMudy7Lz1X1DYsxOOSWpfPqNX2WqktK0DMvuGwlbNj44TleLPQ+Gsfb+GOWOKJoIrWb3cIMeeON6lz2umTqMXV8Mj30yWPpjoSa9ujK8SyeJP5y5mOW1D6hvLepeveEAEDo0mgCRClOEgANv3B9a6fikgUSu/DmAMATrGx7nng5p5iimPNZsfQLYB2sDLIkzRKZOHGAaUyDcpFBSLG9MCQALgAIgQs2YunOszLSAyQYPVC2YdGGeHD2dTdJk1pAHGAWDjnkcLKFymS3RQZTInzySoBwMG0QueC3gMsCEYxUqlrcxK6k1LQQcsmyYeQPdC2YfuGPASCBkcVMQQqpVJshui1tkXQJQV0OXGAZMXSOEEBRirXbVRQW7ugq7IM7rPWSZyDlM3IuNEkxzCOJ0ny2ThNkyRai1b6ev//3dzNGzNb//4uAvHT5sURcZCFcuKLhOFs8mLAAEAt4UWAAIABAAAAAB4qbHo0tIjVkUU//uQZAwABfSFz3ZqQAAAAAngwAAAE1HjMp2qAAAAACZDgAAAD5UkTE1UgZEUExqYynN1qZvqIOREEFmBcJQkwdxiFtw0qEOkGYfRDifBui9MQg4QAHAqWtAWHoCxu1Yf4VfWLPIM2mHDFsbQEVGwyqQoQcwnfHeIkNt9YnkiaS1oizycqJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=');
+        audio.play().catch(e => console.warn('Could not play notification sound:', e));
+      } catch (audioError) {
+        console.warn('Audio notification failed:', audioError);
+      }
+      
+      showToast(`🚗 New ride request from ${data.riderEmail || 'a rider'}!`, "info");
+      
+    } catch (error) {
+      console.error("Error handling ride request:", error);
+      showToast("Error processing ride request", "error");
+    }
+  });
+
+  // Enhanced Accept ride request with comprehensive error handling
+  document.getElementById("acceptRideBtn").onclick = async function() {
+    if (!currentRideId || !currentTargetCarId) {
+      showToast("No active ride request to accept", "error");
+      return;
+    }
+    
+    // Stop the timer
+    stopRideRequestTimer();
+    
+    // Disable button during processing
+    const acceptBtn = document.getElementById("acceptRideBtn");
+    const declineBtn = document.getElementById("declineRideBtn");
+    const originalAcceptText = acceptBtn.innerHTML;
+    
+    acceptBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Accepting...';
+    acceptBtn.disabled = true;
+    declineBtn.disabled = true;
+    
+    try {
+      const response = await retryOperation(async () => {
+        const res = await fetch("http://localhost:5001/ride-request/accept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rideRequestId: currentRideId,
+            carId: currentTargetCarId,
+            carOwnerId: userId
+          }),
+          timeout: 15000
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        return res.json();
+      });
+
+      if (response.status === "accepted") {
+        showToast("✅ Ride accepted! Your car is on the way to pickup.", "success");
+        
+        // Store comprehensive active ride info with validation
+        const pickupText = document.getElementById("pickupLocation")?.textContent || "Unknown pickup";
+        const dropoffText = document.getElementById("dropoffLocation")?.textContent || "Unknown dropoff";
+        const fareText = document.getElementById("fareAmount")?.textContent || "£0";
+        const riderText = document.getElementById("riderEmail")?.textContent || "Unknown rider";
+        const etaText = document.getElementById("estimatedTime")?.textContent || "--";
+        
+        activeRides[currentTargetCarId] = {
+          rideId: currentRideId,
+          pickup: pickupText,
+          dropoff: dropoffText,
+          pickupAddress: pickupText,
+          dropoffAddress: dropoffText,
+          fare: fareText,
+          fareEstimate: fareText.replace('£', ''),
+          riderEmail: riderText,
+          eta: etaText,
+          progress: '0%',
+          phase: 'Driving to pickup',
+          rideStatus: 'accepted',
+          acceptedAt: new Date().toISOString()
+        };
+        
+        // Save active rides to localStorage
+        saveActiveRides();
+        
+        // Refresh car display
+        loadUserCars();
+        hideRideRequestPopup();
+      } else {
+        throw new Error(response.error || response.message || "Unknown error occurred");
+      }
+    } catch (err) {
+      console.error("Error accepting ride:", err);
+      
+      let errorMessage = "Failed to accept ride";
+      if (err.message.includes('HTTP 404')) {
+        errorMessage += ": Ride request not found";
+      } else if (err.message.includes('HTTP 409')) {
+        errorMessage += ": Ride already taken by another driver";
+      } else if (err.message.includes('HTTP 500')) {
+        errorMessage += ": Server error, please try again";
+      } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        errorMessage += ": Network error, check your connection";
+      } else {
+        errorMessage += `: ${err.message}`;
+      }
+      
+      showToast("❌ " + errorMessage, "error");
+    } finally {
+      // Re-enable buttons
+      acceptBtn.innerHTML = originalAcceptText;
+      acceptBtn.disabled = false;
+      declineBtn.disabled = false;
+    }
+  };
+
+  // Enhanced Decline ride request with error handling
+  document.getElementById("declineRideBtn").onclick = async function() {
+    if (!currentRideId) {
+      showToast("No active ride request to decline", "error");
+      return;
+    }
+    
+    // Stop the timer
+    stopRideRequestTimer();
+    
+    // Call the decline function
+    await declineRideRequest();
+  };
+  
+  // Separate decline function for reuse
+  async function declineRideRequest() {
+    if (!currentRideId) {
+      return;
+    }
+    
+    // Disable button during processing
+    const acceptBtn = document.getElementById("acceptRideBtn");
+    const declineBtn = document.getElementById("declineRideBtn");
+    const originalDeclineText = declineBtn.innerHTML;
+    
+    declineBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Declining...';
+    acceptBtn.disabled = true;
+    declineBtn.disabled = true;
+    
+    try {
+      const response = await retryOperation(async () => {
+        const res = await fetch("http://localhost:5001/ride-request/decline", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rideRequestId: currentRideId,
+            carOwnerId: userId
+          }),
+          timeout: 10000
+        });
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        return res.json();
+      });
+      
+      if (response.status === "declined") {
+        showToast("Ride request declined", "info");
+        hideRideRequestPopup();
+      } else {
+        throw new Error(response.error || response.message || "Unknown error occurred");
+      }
+    } catch (err) {
+      console.error("Error declining ride:", err);
+      showToast("❌ Error declining ride: " + err.message, "error");
+    } finally {
+      // Re-enable buttons
+      declineBtn.innerHTML = originalDeclineText;
+      acceptBtn.disabled = false;
+      declineBtn.disabled = false;
+    }
+  }
+
+  // Function to hide the ride request popup
+  function hideRideRequestPopup() {
+    const popup = document.getElementById("rideRequestPopup");
+    if (popup) {
+      popup.classList.add("hidden");
+      popup.style.cssText = "display: none !important;";
+    }
+    
+    // Stop timer and clean up
+    stopRideRequestTimer();
+    currentRideId = null;
+    currentTargetCarId = null;
+  }
+
+  // Enhanced Function to cancel active ride
+  async function cancelActiveRide(carId, rideId) {
+    if (!carId || !rideId) {
+      showToast("Invalid ride information", "error");
+      return;
+    }
+    
+    console.log("Cancelling ride:", { carId, rideId });
+    
+    try {
+      const response = await retryOperation(async () => {
+        const requestBody = {
+          rideId: rideId,
+          cancelledBy: "driver",
+          reason: "Cancelled by driver"
+        };
+        
+        console.log("Sending cancel request:", requestBody);
+        
+        const res = await fetch("http://localhost:5001/cancel-ride", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+          timeout: 10000
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Server error response:", res.status, res.statusText, errorText);
+          throw new Error(`HTTP ${res.status}: ${res.statusText} - ${errorText}`);
+        }
+        
+        return res.json();
+      });
+      
+      if (response.status === "cancelled") {
+        showToast("Ride cancelled successfully", "success");
+        
+        // Remove from active rides
+        delete activeRides[carId];
+        clearActiveRide(carId);
+        
+        // Refresh car display
+        loadUserCars();
+      } else {
+        throw new Error(response.error || response.message || "Unknown error occurred");
+      }
+    } catch (err) {
+      console.error("Error cancelling ride:", err);
+      
+      // Check if this is a "ride not found" error (404) and clean up automatically
+      if (err.message.includes('404') || err.message.includes('Ride request not found')) {
+        console.log("🧹 Ride not found on server, cleaning up locally");
+        delete activeRides[carId];
+        clearActiveRide(carId);
+        loadUserCars();
+        showToast("Ride was already completed - cleaned up display", "info");
+      } else {
+        showToast("❌ Error cancelling ride: " + err.message, "error");
+      }
+    }
+  }
+
+  // Close tracking modal
+  function closeTrackingModal() {
+    const modal = document.getElementById("carTrackingModal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+    
+    // Clear tracking data - only if elements exist
+    const trackingDistance = document.getElementById("trackingDistance");
+    const trackingETA = document.getElementById("trackingETA");
+    const trackingFare = document.getElementById("trackingFare");
+    
+    if (trackingDistance) trackingDistance.textContent = "0 km";
+    if (trackingETA) trackingETA.textContent = "-- min";
+    if (trackingFare) trackingFare.textContent = "£0.00";
+    
+    // Stop tracking updates
+    if (trackingInterval) {
+      clearInterval(trackingInterval);
+      trackingInterval = null;
+    }
+  }
+
+  // Enhanced socket event handlers
+  socket.on("ride-completed", (data) => {
+    console.log("🏁 Ride completed event received:", data);
+    
+    // Remove from active rides
+    delete activeRides[data.carId];
+    
+    // Clear from localStorage
+    clearActiveRide(data.carId);
+    
+    // Update car status in userCars array
+    const carIndex = userCars.findIndex(car => car._id === data.carId);
+    if (carIndex !== -1) {
+      console.log(`Updating car ${data.carId} status from ${userCars[carIndex].status} to Idle`);
+      userCars[carIndex].status = "Idle";
+    }
+    
+    // Refresh car display to reflect status change
+    loadUserCars();
+    
+    let reasonMsg = data.reason === "Battery dead" ? " (battery dead)" : "";
+    showToast(`🎉 Ride completed for car ${data.carId}${reasonMsg}`, "success");
+    
+    // If tracking modal is open for this car, update it
+    if (currentTrackingCarId === data.carId) {
+      const rideStatsElement = document.getElementById('rideTrackingStats');
+      if (rideStatsElement) {
+        rideStatsElement.style.display = 'none';
+      }
+      
+      const statusElement = document.getElementById('trackingCarStatus');
+      if (statusElement) {
+        statusElement.textContent = "Idle";
+      }
+    }
+  });
+
+  socket.on("ride-cancelled", (data) => {
+    // Remove from active rides if it was ours
+    Object.keys(activeRides).forEach(carId => {
+      if (activeRides[carId].rideId === data.rideId) {
+        delete activeRides[carId];
+      }
+    });
+    
+    // Refresh car display
+    loadUserCars();
+    
+    if (data.cancelledBy === "rider") {
+      showToast("Ride was cancelled by the passenger", "warning");
+    }
+  });
+
+  // Enhanced car location updates with battery monitoring
+  socket.on("car-location-update", (data) => {
+    try {
+      if (!data || !data.carId) {
+        console.warn('Invalid car location update data:', data);
+        return;
+      }
+      
+      console.log('📍 Car location update received (legacy event):', data);
+      
+      // Forward to the unified car-update handler logic
+      const unifiedData = {
+        carId: data.carId,
+        lat: data.lat,
+        lng: data.lng,
+        battery: data.battery,
+        status: data.status,
+        progress: data.progress,
+        driverETA: data.driverETA,
+        phase: data.phase
+      };
+      
+      // Trigger the same logic as car-update
+      socket.emit('unified-car-update', unifiedData);
+      
+    } catch (error) {
+      console.error('Error handling car location update:', error);
+    }
+  });
+
+  // Enhanced ride status updates
+  socket.on("ride-status-update", (data) => {
+    // Update active rides with status
+    Object.keys(activeRides).forEach(carId => {
+      if (activeRides[carId].rideId === data.rideId) {
+        activeRides[carId].rideStatus = data.status;
+        activeRides[carId].statusMessage = data.message;
+        
+        // Show toast for important status updates
+        if (data.status === 'arrived_at_pickup') {
+          showToast("🎯 Driver arrived at pickup!", "success");
+        } else if (data.status === 'in_progress') {
+          showToast("🚗 Ride started to destination!", "info");
+        } else if (data.status === 'completed') {
+          showToast("✅ Ride completed successfully!", "success");
+          delete activeRides[carId];
+        }
+        
+        // Efficiently update just this car's card
+        const carData = { car_id: carId, status: data.status, phase: data.phase };
+        updateCarCard(carData);
+      }
+    });
+  });
+
+  // Driver arrival notifications
+  socket.on("driver-arrived", (data) => {
+    Object.keys(activeRides).forEach(carId => {
+      if (activeRides[carId].rideId === data.rideId) {
+        showToast("🎯 Driver has arrived at pickup location!", "success");
+        activeRides[carId].phase = "Arrived at pickup";
+        // Efficiently update just this car's card
+        const carData = { car_id: carId, phase: "Arrived at pickup" };
+        updateCarCard(carData);
+      }
+    });
+  });
+
+  // Ride start notifications
+  socket.on("ride-started", (data) => {
+    Object.keys(activeRides).forEach(carId => {
+      if (activeRides[carId].rideId === data.rideId) {
+        showToast("🚗 Ride started to destination!", "info");
+        activeRides[carId].phase = "En route to destination";
+        // Efficiently update just this car's card
+        const carData = { car_id: carId, phase: "En route to destination" };
+        updateCarCard(carData);
+      }
+    });
+  });
+
+  // Toast notification system
+  function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icons = {
+      success: '✅',
+      error: '❌',
+      warning: '⚠️',
+      info: 'ℹ️'
+    };
+    
+    toast.innerHTML = `
+      <span class="toast-icon">${icons[type] || icons.info}</span>
+      <span>${message}</span>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('toast-show'), 100);
+    
+    // Remove toast
+    setTimeout(() => {
+      toast.classList.remove('toast-show');
+      setTimeout(() => {
+        if (toastContainer.contains(toast)) {
+          toastContainer.removeChild(toast);
+        }
+      }, 300);
+    }, 4000);
+  }
+
+  function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+    return container;
+  }
+
+  // Listen for car updates to refresh the display
+  socket.on("car-update", (data) => {
+    // Use efficient card update instead of full reload
+    console.log('Car update received:', data);
+    
+    if (!data.carId) {
+      console.warn('Car update received without carId:', data);
+      return;
+    }
+    
+    try {
+      // Prepare the updates object from the received data
+      const updates = {};
+      if (data.lat !== undefined && data.lng !== undefined) {
+        updates.location = { lat: data.lat, lng: data.lng };
+      }
+      if (data.battery !== undefined) {
+        updates.battery = data.battery;
+      }
+      if (data.status !== undefined) {
+        updates.status = data.status;
+      }
+      if (data.progress !== undefined) {
+        updates.progress = data.progress;
+      }
+      if (data.driverETA !== undefined) {
+        updates.eta = data.driverETA;
+      }
+      if (data.phase !== undefined) {
+        updates.phase = data.phase;
+      }
+      
+      // Update the car card with the prepared data
+      updateCarCard(data.carId, updates);
+      
+      // Update map marker if location data is provided
+      if (data.lat !== undefined && data.lng !== undefined) {
+        const marker = carMarkers[data.carId];
+        if (marker) {
+          const newPosition = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+          marker.setPosition(newPosition);
+          console.log(`🗺️ Updated map marker for car ${data.carId} to:`, newPosition);
+        }
+      }
+      
+      // Update tracking modal if this car is being tracked
+      if (currentTrackingCarId === data.carId && trackingMap && trackingCarMarker) {
+        if (data.lat !== undefined && data.lng !== undefined) {
+          const newPosition = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+          
+          // Update marker position
+          trackingCarMarker.setPosition(newPosition);
+          
+          // Center map on car
+          trackingMap.panTo(newPosition);
+          
+          // Update location text
+          updateTrackingLocation(data.lat, data.lng);
+        }
+        
+        // Update battery display
+        if (data.battery !== undefined) {
+          const batteryElement = document.getElementById('trackingCarBattery');
+          if (batteryElement) {
+            batteryElement.textContent = data.battery + '%';
+          }
+        }
+        
+        // Update status
+        if (data.status) {
+          const statusElement = document.getElementById('trackingCarStatus');
+          if (statusElement) {
+            statusElement.textContent = data.status;
+          }
+        }
+        
+        // Update ride stats if available
+        if (data.progress !== undefined) {
+          const progressElement = document.getElementById('rideProgress');
+          if (progressElement) {
+            progressElement.textContent = Math.round(data.progress * 100) + '%';
+          }
+        }
+        if (data.driverETA !== undefined) {
+          console.log(`🕐 ETA Update for car ${data.carId}: ${data.driverETA}`);
+          const etaElement = document.getElementById('rideETA');
+          if (etaElement) {
+            etaElement.textContent = data.driverETA;
+          }
+        }
+      }
+      
+      // Update car data in userCars array for UI consistency
+      const carIndex = userCars.findIndex(car => car._id === data.carId);
+      if (carIndex !== -1) {
+        const car = userCars[carIndex];
+        
+        // Update location if provided
+        if (data.lat !== undefined && data.lng !== undefined) {
+          car.location = {
+            lat: parseFloat(data.lat),
+            lng: parseFloat(data.lng)
+          };
+        }
+        
+        // Update battery and check for notifications
+        if (data.battery !== undefined) {
+          const oldBattery = car.battery;
+          car.battery = data.battery;
+          
+          // Check if battery dropped significantly and notify
+          if (oldBattery && (oldBattery - data.battery) >= 10) {
+            checkBatteryStatus(car);
+          }
+        }
+        
+        // Update status
+        if (data.status) {
+          const previousStatus = car.status;
+          car.status = data.status;
+          
+          console.log(`Car ${data.carId} status change: ${previousStatus} -> ${data.status}`);
+          
+          // If status changed from Working to Idle, handle ride completion
+          if (previousStatus === "Working" && data.status === "Idle") {
+            console.log(`🔄 Handling Working->Idle transition for car ${data.carId}`);
+            // Remove from active rides if it exists
+            if (activeRides[data.carId]) {
+              console.log(`Removing active ride for car ${data.carId}`);
+              delete activeRides[data.carId];
+              saveActiveRides();
+              // Reload to update card structure
+              setTimeout(() => loadUserCars(), 100);
+            } else {
+              console.log(`No active ride found for car ${data.carId} during status transition`);
+            }
+          }
+        }
+        
+        // Periodic battery check for all cars
+        checkBatteryStatus(car);
+      }
+      
+      // Update active rides phase if needed
+      if (data.phase && activeRides[data.carId]) {
+        const phaseMessages = {
+          'driving_to_pickup': 'Driving to pickup',
+          'arrived_at_pickup': 'Arrived at pickup',
+          'in_progress': 'En route to destination'
+        };
+        
+        if (phaseMessages[data.phase]) {
+          activeRides[data.carId].phase = phaseMessages[data.phase];
+          saveActiveRides();
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error handling car update:', error);
+    }
+  });
+
+  // Global initMap function for Google Maps API
+  window.initMap = function() {
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: 51.4545, lng: -2.5879 },
+      zoom: 13,
+    });
+    
+    // Restore active rides first, then load cars
+    restoreActiveRides();
+    setTimeout(() => {
+      loadUserCars();
+    }, 100);
+  };
+
+  // Enhanced car tracking modal without distance, ETA, fare
+  function openCarTracking(carId) {
+    try {
+      currentTrackingCarId = carId;
+      
+      // Ensure userCars is populated
+      if (!userCars || userCars.length === 0) {
+        showToast("Cars data not loaded yet. Please wait...", "warning");
+        loadUserCars(); // Try to reload cars
+        return;
+      }
+      
+      const car = userCars.find(c => c._id === carId);
+      
+      if (!car) {
+        showToast("Car not found", "error");
+        console.error("Car not found with ID:", carId, "Available cars:", userCars.map(c => c._id));
+        return;
+      }
+      
+      // Update modal title and car details
+      document.getElementById('trackingTitle').textContent = `Tracking: ${car.name}`;
+      document.getElementById('trackingCarName').textContent = car.name;
+      document.getElementById('trackingCarBattery').textContent = car.battery || 'N/A';
+      document.getElementById('trackingCarStatus').textContent = car.status || 'Unknown';
+      
+      // Show the modal
+      document.getElementById('carTrackingModal').style.display = 'flex';
+      
+      // Initialize the tracking map
+      setTimeout(() => {
+        try {
+          initTrackingMap(car);
+        } catch (mapError) {
+          console.error('Error initializing tracking map:', mapError);
+          showToast("Failed to load map. Please try again.", "error");
+        }
+      }, 100);
+      
+      // Show ride stats if car has active ride
+      const activeRide = activeRides[carId];
+      if (activeRide) {
+        const rideStatsElement = document.getElementById('rideTrackingStats');
+        if (rideStatsElement) {
+          rideStatsElement.style.display = 'block';
+          
+          // Display comprehensive ride information with null checks
+          const elements = {
+            'ridePickup': activeRide.pickupAddress || activeRide.pickup || '--',
+            'rideDropoff': activeRide.dropoffAddress || activeRide.dropoff || '--',
+            'rideProgress': activeRide.progress || '0%',
+            'ridePhase': activeRide.phase || 'In Progress',
+            'rideRider': activeRide.riderEmail || '--',
+            'rideStatus': activeRide.rideStatus || 'Active'
+          };
+          
+          // Safely update elements
+          Object.keys(elements).forEach(elementId => {
+            const element = document.getElementById(elementId);
+            if (element) {
+              element.textContent = elements[elementId];
+            }
+          });
+          
+          // Update ETA from live data if available
+          if (activeRide.eta) {
+            const etaElement = document.getElementById('rideETA');
+            if (etaElement) {
+              etaElement.textContent = activeRide.eta;
+            }
+          }
+        }
+      } else {
+        const rideStatsElement = document.getElementById('rideTrackingStats');
+        if (rideStatsElement) {
+          rideStatsElement.style.display = 'none';
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error opening car tracking:', error);
+      showToast("Failed to open car tracking", "error");
+    }
+  }
+
+  function closeCarTracking() {
+    try {
+      document.getElementById('carTrackingModal').style.display = 'none';
+      currentTrackingCarId = null;
+      trackingMap = null;
+      trackingCarMarker = null;
+    } catch (error) {
+      console.error('Error closing car tracking:', error);
+    }
+  }
+
+  function initTrackingMap(car) {
+    try {
+      const mapElement = document.getElementById('trackingMap');
+      if (!mapElement) {
+        throw new Error('Map element not found');
+      }
+      
+      const carLat = parseFloat(car.location?.lat) || 51.4545;
+      const carLng = parseFloat(car.location?.lng) || -2.5879;
+      
+      if (isNaN(carLat) || isNaN(carLng)) {
+        throw new Error('Invalid car coordinates');
+      }
+      
+      trackingMap = new google.maps.Map(mapElement, {
+        center: { lat: carLat, lng: carLng },
+        zoom: 16,
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true
+      });
+      
+      // Add car marker
+      trackingCarMarker = new google.maps.Marker({
+        position: { lat: carLat, lng: carLng },
+        map: trackingMap,
+        icon: {
+          url: "https://img.icons8.com/color/48/car--v1.png",
+          scaledSize: new google.maps.Size(45, 45),
+        },
+        title: car.name,
+        animation: google.maps.Animation.DROP
+      });
+      
+      // Update location text
+      updateTrackingLocation(carLat, carLng);
+      
+    } catch (error) {
+      console.error('Error initializing tracking map:', error);
+      showToast("Map initialization failed", "error");
+    }
+  }
+
+  function updateTrackingLocation(lat, lng) {
+    try {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: parseFloat(lat), lng: parseFloat(lng) } }, (results, status) => {
+        const locationElement = document.getElementById('trackingCarLocation');
+        if (!locationElement) return;
+        
+        if (status === "OK" && results && results[0]) {
+          locationElement.textContent = results[0].formatted_address;
+        } else {
+          locationElement.textContent = `${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
+        }
+      });
+    } catch (error) {
+      console.error('Error updating location:', error);
+      const locationElement = document.getElementById('trackingCarLocation');
+      if (locationElement) {
+        locationElement.textContent = 'Location unavailable';
+      }
+    }
+  }
+
+  // Utility functions for calculations
+  function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+  
+  function calculateETA(currentLat, currentLng, targetLat, targetLng) {
+    const distance = calculateDistance(currentLat, currentLng, targetLat, targetLng);
+    
+    // Calculate based on updated simulation parameters
+    // Using up to 20 waypoints, 4 steps per waypoint, 1.5s per step
+    const waypointsNeeded = Math.min(20, Math.max(2, Math.floor(distance * 5))); // More waypoints for detailed road following
+    const totalSimulationSteps = waypointsNeeded * 4; // 4 steps per waypoint (reduced from 8)
+    const stepDelay = 1.5; // seconds per step
+    
+    // Total simulation time in seconds
+    let totalSeconds = totalSimulationSteps * stepDelay;
+    
+    // Add pickup wait time and some buffer
+    totalSeconds += 5;
+    
+    // Convert to minutes and seconds for display
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+
+  // Separate function for calculating realistic journey time (pickup to dropoff)
+  function calculateJourneyTime(pickupLat, pickupLng, dropoffLat, dropoffLng) {
+    const distance = calculateDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    
+    // Calculate realistic driving time based on distance
+    // Assume average city driving speed of 30 km/h (including traffic, stops, etc.)
+    const averageSpeed = 30; // km/h
+    const timeInHours = distance / averageSpeed;
+    const timeInMinutes = Math.round(timeInHours * 60);
+    
+    // Minimum journey time of 2 minutes for very short distances
+    const finalMinutes = Math.max(2, timeInMinutes);
+    
+    if (finalMinutes >= 60) {
+      const hours = Math.floor(finalMinutes / 60);
+      const remainingMinutes = finalMinutes % 60;
+      return `${hours}h ${remainingMinutes}m`;
+    } else {
+      return `${finalMinutes}m`;
+    }
+  }
+  
+  // Persistence functions for active rides
+  function saveActiveRides() {
+    try {
+      localStorage.setItem('taxiActiveRides', JSON.stringify(activeRides));
+      console.log('💾 Saved active rides to localStorage:', activeRides);
+      updateActiveRideCount();
+    } catch (error) {
+      console.error('❌ Error saving active rides:', error);
+    }
+  }
+  
+  function updateActiveRideCount() {
+    const count = Object.keys(activeRides).length;
+    const countElement = document.getElementById('activeRideCount');
+    if (countElement) {
+      countElement.textContent = count > 0 ? `${count} active ride${count > 1 ? 's' : ''}` : '';
+    }
+  }
+  
+  function restoreActiveRides() {
+    const savedRides = localStorage.getItem('taxiActiveRides');
+    if (savedRides) {
+      try {
+        const restoredRides = JSON.parse(savedRides);
+        console.log('🔄 Restoring active rides from localStorage:', restoredRides);
+        
+        for (const carId in restoredRides) {
+          activeRides[carId] = restoredRides[carId];
+          console.log(`✅ Restored active ride for car ${carId}:`, activeRides[carId]);
+        }
+        
+        if (Object.keys(activeRides).length > 0) {
+          console.log(`📋 Total active rides restored: ${Object.keys(activeRides).length}`);
+          showToast(`Restored ${Object.keys(activeRides).length} active ride(s)`, "success");
+          updateActiveRideCount();
+        } else {
+          console.log('📭 No active rides to restore');
+          updateActiveRideCount();
+        }
+      } catch (error) {
+        console.error("❌ Error restoring active rides:", error);
+        localStorage.removeItem('taxiActiveRides');
+        showToast("Error restoring active rides", "warning");
+      }
+    } else {
+      console.log('📭 No saved active rides found in localStorage');
+    }
+  }
+  
+  function clearActiveRide(carId) {
+    delete activeRides[carId];
+    saveActiveRides();
+  }
+  
+  // Manual function to clear all stale active rides
+  function clearStaleActiveRides() {
+    console.log("🧹 Clearing all active rides...");
+    activeRides = {};
+    saveActiveRides();
+    loadUserCars();
+    showToast("Cleared all active rides", "info");
+  }
+  
+  // Function to check and clear stale rides (rides that no longer exist on server)
+  async function validateActiveRides() {
+    console.log("🔍 Validating active rides...");
+    const staleRides = [];
+    
+    for (const carId in activeRides) {
+      const ride = activeRides[carId];
+      if (ride.rideId) {
+        try {
+          // Check if ride still exists by trying to cancel it (will fail if not found)
+          const response = await fetch("http://localhost:5001/cancel-ride", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rideId: ride.rideId,
+              cancelledBy: "driver",
+              reason: "Validation check"
+            })
+          });
+          
+          if (response.status === 404) {
+            // Ride doesn't exist, mark as stale
+            staleRides.push(carId);
+          }
+        } catch (error) {
+          if (error.message.includes('404')) {
+            staleRides.push(carId);
+          }
+        }
+      }
+    }
+    
+    // Remove stale rides
+    staleRides.forEach(carId => {
+      console.log(`Removing stale ride for car ${carId}`);
+      delete activeRides[carId];
+    });
+    
+    if (staleRides.length > 0) {
+      saveActiveRides();
+      loadUserCars();
+      showToast(`Cleared ${staleRides.length} stale ride(s)`, "success");
+    }
+  }
+</script>
+
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-8K0ndNli1FxzigKdSe3T0bnqUCw3D_o&callback=initMap&libraries=places&loading=async"></script>
+
+<!-- Enhanced Car Tracking Modal -->
+<div id="carTrackingModal" class="car-tracking-modal">
+  <div class="car-tracking-content">
+    <div class="tracking-header">
+      <h2 id="trackingTitle">Car Tracking</h2>
+      <button class="close-tracking" onclick="closeCarTracking()">&times;</button>
+    </div>
+    <div class="tracking-map">
+      <div id="trackingMap" style="width: 100%; height: 100%;"></div>
+    </div>
+    <div class="tracking-info">
+      <div class="car-details-grid">
+        <div class="detail-item">
+          <div class="detail-label">Car Name</div>
+          <div class="detail-value" id="trackingCarName">--</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Battery</div>
+          <div class="detail-value" id="trackingCarBattery">--</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Status</div>
+          <div class="detail-value" id="trackingCarStatus">--</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Location</div>
+          <div class="detail-value" id="trackingCarLocation">--</div>
+        </div>
+      </div>
+      
+      <div id="rideTrackingStats" style="display: none;">
+        <h4 style="margin: 16px 0 12px 0; color: #2e7d32; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
+          <i class="fa-solid fa-car"></i> Active Ride Details
+        </h4>
+        <div class="car-details-grid">
+          <div class="detail-item">
+            <div class="detail-label">Phase</div>
+            <div class="detail-value" id="ridePhase">--</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Rider</div>
+            <div class="detail-value" id="rideRider">--</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Pickup</div>
+            <div class="detail-value" id="ridePickup">--</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Dropoff</div>
+            <div class="detail-value" id="rideDropoff">--</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value" id="rideStatus">--</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">ETA</div>
+            <div class="detail-value" id="rideETA">--</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Progress</div>
+            <div class="detail-value" id="rideProgress">--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

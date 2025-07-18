@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Locate My Cars | CarmaGO</title>
+  <link rel="stylesheet" href="styles/navbar.css" />
+  <link rel="stylesheet" href="styles/locate-cars.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="auth.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    #map { height: 100%; width: 100%; }
+    /* --- DO NOT REMOVE toast styling --- */
+    .btn-disabled { opacity: 0.6; pointer-events: none; }
+    #toast-container {
+      position: fixed;
+      right: 30px;
+      bottom: 30px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .toast {
+      min-width: 220px;
+      max-width: 340px;
+      background: #222;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.11);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(30px) scale(0.95);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.28s, transform 0.28s;
+    }
+    .toast.toast-success { background: #43b54b; color: #fff; }
+    .toast.toast-error { background: #d62f2f; color: #fff; }
+    .toast.toast-info  { background: #3465a4; color: #fff; }
+    .toast.toast-warning { background: #eab307; color: #222; }
+    .toast.toast-show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .toast .toast-icon { font-size: 19px; }
+    #cancel-confirm-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+    }
+    #cancelConfirmBtn {
+      background: #d62f2f;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 5px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.17s;
+    }
+    #cancelConfirmBtn:hover { background: #a20e0e; }
+    #cancelAbortBtn {
+      background: #eee;
+      color: #222;
+      border: none;
+      border-radius: 7px;
+      padding: 5px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.16s;
+    }
+    #cancelAbortBtn:hover {
+      background: #eab307;
+      color: #111;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <div class="navbar" data-page="locate">
+    <div class="nav-container">
+      <a href="HomePage.html" class="logo">
+        <div class="logo-circle"></div>
+        <span class="logo-text">CarmaGO</span>
+      </a>
+      
+      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      
+      <nav>
+        <ul class="nav-links" id="nav-links">
+          <li><a href="HomePage.html"><i class="fas fa-home nav-icon"></i>Home</a></li>
+          <li><a href="req-ride.html" data-auth-required="true"><i class="fas fa-car nav-icon"></i>Request Ride</a></li>
+          <li><a href="account.html" data-auth-required="true"><i class="fas fa-user nav-icon"></i>Account</a></li>
+          <li><a href="locate-car.html" class="active" data-auth-required="true"><i class="fas fa-map-marker-alt nav-icon"></i>Locate Cars</a></li>
+          <li><a href="taxi-job.html" data-auth-required="true"><i class="fas fa-taxi nav-icon"></i>Taxi Jobs</a></li>
+        </ul>
+      </nav>
+      
+      <div class="auth-actions">
+        <button class="signup-btn" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i>Logout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="main-layout">
+    <div class="car-list-panel">
+      <h2>My Cars</h2>
+      <div id="carCardsContainer">Loading cars...</div>
+    </div>
+
+    <div class="map-panel">
+      <div id="map"></div>
+      <div class="live-info-bar">
+        <p id="liveCarInfo">No car selected.</p>
+        <div id="liveStats" style="display: none;">
+          <p><strong>Location:</strong> <span id="liveLocation">--</span></p>
+          <p><strong>ETA:</strong> <span id="liveETA">--</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="route-panel" id="routePanel">
+      <h3>Selected Car</h3>
+      <p id="carLocation">Location: --</p>
+      <input type="text" id="destinationInput" placeholder="Enter destination..." />
+      <button onclick="calculateRoute()" id="calcRouteBtn">Calculate Route</button>
+      <div id="etaBox" style="display: none;">
+        <p><strong>ETA:</strong> <span id="etaText">--</span></p>
+        <p id="rideProgressIndicator" style="color: darkgreen; font-weight: bold; display: none;">🚕 Ride In Progress</p>
+        <button onclick="confirmRide()" id="confirmRideBtn">Confirm Ride</button>
+        <button onclick="cancelRide()" id="cancelRideBtn" style="margin-top: 5px; background: crimson; color: white;">Cancel Ride</button>
+        <div id="cancel-confirm-row" style="display:none;"></div>
+      </div>
+      <div id="batteryInfoBox" style="margin-top: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 10px;">
+        <p><strong>Battery:</strong> <span id="batteryPercent">--</span></p>
+        <p><strong>Estimated Time Until Charged:</strong> <span id="batteryTillfull">--</span></p>
+        <p><strong>Status:</strong> <span id="chargeStatus">Idle</span></p>
+        <button onclick="chargeCar()" id="chargeBtn">⚡ Charge Car</button>
+        <button onclick="pauseCharging()" id="pauseChargeBtn" style="display: none;">⏸️ Pause Charging</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!-- Google Maps API -->
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-8K0ndNli1FxzigKdSe3T0bnqUCw3D_o&callback=initMap&libraries=places">
+  </script>
+
+<script>
+  function showToast(message, type = "info") {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    let icon = "";
+    switch(type) {
+      case "success": icon = '<span class="toast-icon">✅</span>'; break;
+      case "error": icon = '<span class="toast-icon">❌</span>'; break;
+      case "warning": icon = '<span class="toast-icon">⚠️</span>'; break;
+      default: icon = '<span class="toast-icon">ℹ️</span>';
+    }
+    toast.innerHTML = `${icon}<span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add("toast-show"), 20);
+    setTimeout(() => {
+      toast.classList.remove("toast-show");
+      setTimeout(() => container.removeChild(toast), 350);
+    }, 3400);
+  }
+
+  const API_URL = "http://localhost:5001";
+  const userEmail = localStorage.getItem("loggedInUser");
+  const userId = localStorage.getItem("loggedInUserId");
+  const socket = io(API_URL);
+  const carMarkers = {};
+  let selectedCar = localStorage.getItem("selectedCar") || null;
+  let selectedCoords = null;
+  let selectedCarObj = null;
+  let fullRoute = [];
+  let map, directionsService, directionsRenderer;
+  let etaTimer = null, etaSecondsRemaining = 0;
+  let chargingTimer = null;
+
+  if (!userEmail || !userId) {
+    showToast("Please log in.", "error");
+    window.location.href = "logInpage.html";
+  }
+
+  function logout() {
+    localStorage.clear();
+    showToast("You have been logged out successfully!", "success");
+    setTimeout(() => {
+      window.location.href = "logInpage.html";
+    }, 1500);
+  }
+
+  // Mobile menu toggle
+  function toggleMobileMenu() {
+    const navLinks = document.getElementById("nav-links");
+    const toggleBtn = document.querySelector(".mobile-menu-toggle");
+    
+    navLinks.classList.toggle("mobile-active");
+    toggleBtn.classList.toggle("active");
+  }
+
+  function perCarKey(key) {
+    return `${key}_${selectedCar}`;
+  }
+
+  function disableBtn(id, val=true) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (val) btn.classList.add("btn-disabled");
+    else btn.classList.remove("btn-disabled");
+  }
+
+  window.initMap = async function () {
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: 51.4545, lng: -2.5879 },
+      zoom: 13,
+    });
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer();
+    directionsRenderer.setMap(map);
+
+    new google.maps.places.Autocomplete(document.getElementById("destinationInput")).bindTo("bounds", map);
+
+    const res = await fetch(`${API_URL}/cars/user/${userId}`);
+    const cars = await res.json();
+    renderCars(cars);
+
+    if (selectedCar) {
+      const found = cars.find(c => String(c._id) === selectedCar);
+      if (found) {
+        selectCar(found._id, found.name, found);
+      } else {
+        showDefaultRouteUI();
+      }
+    } else {
+      showDefaultRouteUI();
+    }
+  };
+
+  function renderCars(cars) {
+    const container = document.getElementById("carCardsContainer");
+    if (!cars.length) {
+      container.innerHTML = "<p>No cars found.</p>";
+      return;
+    }
+    container.innerHTML = cars.map(car => {
+      const batteryLevel = parseInt(car.battery) || 0;
+      const batteryClass = getBatteryClass(batteryLevel);
+      const batteryIcon = getBatteryIcon(batteryLevel);
+      const statusClass = getStatusClass(car.status);
+      const isWorking = car.status === "Working";
+      
+      return `
+        <div class="car-card ${isWorking ? 'active-ride' : ''}" onclick="selectCar('${car._id}', '${car.name}')" data-car-id="${car._id}">
+          <div class="car-card-header">
+            <div class="car-info">
+              <div class="car-name">${car.name}</div>
+              <div class="car-id">ID: ${car.carId}</div>
+              <div class="car-model">Model: ${car.model}</div>
+            </div>
+            <div class="car-status-badges">
+              <div class="battery-indicator ${batteryClass}" id="battery-${car._id}">
+                <i class="fa-solid fa-battery-${batteryIcon}"></i>
+                ${batteryLevel}%
+              </div>
+              <div class="status-indicator ${statusClass}" id="status-${car._id}">
+                <i class="fa-solid fa-circle"></i>
+                ${car.status}
+              </div>
+            </div>
+          </div>
+          ${isWorking ? `
+            <div class="active-ride-indicator">
+              <div class="ride-status">
+                <i class="fa-solid fa-route"></i>
+                <span>Car in use - Ride in progress</span>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join("");
+    plotMarkers(cars);
+  }
+
+  function plotMarkers(cars) {
+    cars.forEach(car => {
+      if (!car.location || isNaN(car.location.lat) || isNaN(car.location.lng)) return;
+      const marker = new google.maps.Marker({
+        position: { lat: parseFloat(car.location.lat), lng: parseFloat(car.location.lng) },
+        map,
+        icon: {
+          url: "https://img.icons8.com/color/48/car--v1.png",
+          scaledSize: new google.maps.Size(40, 40),
+        },
+      });
+      carMarkers[car._id] = marker;
+    });
+  }
+
+  function selectCar(id, name, carOverride) {
+    selectedCar = id;
+    localStorage.setItem("selectedCar", id);
+
+    // If carOverride passed, use it, else fetch
+    let getCarPromise;
+    if (carOverride) {
+      getCarPromise = Promise.resolve([carOverride]);
+    } else {
+      getCarPromise = fetch(`${API_URL}/cars/user/${userId}`).then(res => res.json());
+    }
+
+    getCarPromise.then(cars => {
+      const car = cars.find(c => String(c._id) === String(id));
+      if (!car || !car.location || isNaN(car.location.lat) || isNaN(car.location.lng)) {
+        showToast("Invalid car coordinates.", "error");
+        return;
+      }
+      selectedCarObj = car;
+      selectedCoords = {
+        lat: parseFloat(car.location.lat),
+        lng: parseFloat(car.location.lng),
+      };
+      map.panTo(selectedCoords);
+      map.setZoom(16);
+
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: selectedCoords }, (results, status) => {
+        if (status === "OK" && results[0]) {
+          document.getElementById("carLocation").textContent = `Location: ${results[0].formatted_address}`;
+          document.getElementById("liveLocation").textContent = results[0].formatted_address;
+        } else {
+          const latLngString = `(${car.location.lat.toFixed(5)}, ${car.location.lng.toFixed(5)})`;
+          document.getElementById("carLocation").textContent = `Location: ${latLngString}`;
+          document.getElementById("liveLocation").textContent = latLngString;
+        }
+      });
+      updateUIOnSelect(car, name);
+
+      // --- RESTORE ACTIVE RIDE STATE IF car.status IS "Working" ---
+      const savedRoute = localStorage.getItem(perCarKey("fullRoute"));
+      const savedEta = localStorage.getItem(perCarKey("etaSecondsRemaining"));
+      const etaStartTime = localStorage.getItem(perCarKey("etaStartTime"));
+      const savedActiveRide = localStorage.getItem(perCarKey("activeRide"));
+
+      if (car.status === "Working" && (savedRoute || savedActiveRide)) {
+        // Restore route if available
+        if (savedRoute) {
+          fullRoute = JSON.parse(savedRoute);
+        } else if (savedActiveRide) {
+          const activeRideData = JSON.parse(savedActiveRide);
+          fullRoute = activeRideData.route || [];
+        }
+        
+        // Restore ETA if available
+        if (savedEta && etaStartTime) {
+          const elapsed = Math.floor((Date.now() - parseInt(etaStartTime)) / 1000);
+          etaSecondsRemaining = Math.max(0, parseInt(savedEta) - elapsed);
+
+          if (etaSecondsRemaining > 0) {
+            updateEta();
+            startEtaCountdown();
+          }
+        }
+        
+        // Show active ride UI
+        document.getElementById("etaBox").style.display = "block";
+        document.getElementById("rideProgressIndicator").style.display = "block";
+        document.getElementById("destinationInput").style.display = "none";
+        document.querySelector("#etaBox button[onclick='confirmRide()']").style.display = "none";
+        disableBtn("calcRouteBtn", true);
+        disableBtn("confirmRideBtn", true);
+        
+        // Show cancel ride button
+        showCancelRideButton();
+        
+        // Update live car info
+        document.getElementById("liveCarInfo").textContent = `🚗 Moving | Battery: ${car.battery}%`;
+        
+        showToast("Active ride restored!", "info");
+      } else {
+        // Car not working or not on a ride, clear ride state/UI for this car
+        clearCarRideState();
+        showDefaultRouteUI();
+        hideCancelRideButton();
+      }
+      document.getElementById("pauseChargeBtn").style.display = car.status === "Charging" ? "inline-block" : "none";
+      document.getElementById("cancel-confirm-row").style.display = "none"; // Hide confirm on car switch
+      updateChargingEstimate();
+    });
+  }
+
+  function showDefaultRouteUI() {
+    document.getElementById("etaBox").style.display = "none";
+    document.getElementById("rideProgressIndicator").style.display = "none";
+    document.getElementById("destinationInput").style.display = "inline-block";
+    disableBtn("calcRouteBtn", false);
+    disableBtn("confirmRideBtn", false);
+    document.getElementById("liveETA").textContent = "--";
+    document.getElementById("etaText").textContent = "--";
+    document.getElementById("cancel-confirm-row").style.display = "none";
+  }
+
+  function clearCarRideState() {
+    localStorage.removeItem(perCarKey("fullRoute"));
+    localStorage.removeItem(perCarKey("etaSecondsRemaining"));
+    localStorage.removeItem(perCarKey("etaStartTime"));
+    localStorage.removeItem(perCarKey("activeRide"));
+    clearInterval(etaTimer);
+  }
+
+  function updateUIOnSelect(car, name) {
+    document.getElementById("liveCarInfo").textContent = `🚘 Selected: ${name}`;
+    document.getElementById("carLocation").textContent = `Location: (${car.location.lat}, ${car.location.lng})`;
+    document.getElementById("batteryPercent").textContent = `${car.battery}%`;
+    document.getElementById("chargeStatus").textContent = car.status;
+    document.getElementById("batteryTillfull").textContent =
+      car.battery >= 100 ? "Fully charged" :
+      car.status === "Charging" ? `${(100 - car.battery) * 0.5}s` : "--";
+    document.getElementById("liveStats").style.display = "block";
+    document.getElementById("pauseChargeBtn").style.display = car.status === "Charging" ? "inline-block" : "none";
+    document.getElementById("etaBox").style.display = "none";
+    document.getElementById("cancel-confirm-row").style.display = "none";
+    updateChargingEstimate();
+  }
+
+  function calculateRoute() {
+    if (!selectedCarObj) return showToast("Please select a car.", "error");
+    if (selectedCarObj.status !== "Idle") {
+      return showToast("Car must be idle to calculate a route!", "warning");
+    }
+    if (selectedCarObj.battery <= 0) {
+      return showToast("Battery is dead. Please charge before setting a route.", "error");
+    }
+    if (selectedCarObj.battery < 10) {
+      return showToast("Battery too low to calculate a ride. Please charge the car.", "error");
+    }
+    if (selectedCarObj.battery < 20) {
+      showToast("Warning: Battery is below 20%. Ride may not complete.", "warning");
+    }
+    const input = document.getElementById("destinationInput").value;
+    if (!input || !selectedCoords) return showToast("Select destination and car first.", "warning");
+
+    disableBtn("calcRouteBtn", true);
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: input }, (results, status) => {
+      if (status !== "OK" || !results[0]) {
+        disableBtn("calcRouteBtn", false);
+        return showToast("Invalid or unreachable destination.", "error");
+      }
+      const dest = results[0].geometry.location;
+
+      directionsRenderer.set('directions', null);
+      directionsService.route({
+        origin: selectedCoords,
+        destination: dest,
+        travelMode: google.maps.TravelMode.DRIVING,
+      }, (response, status) => {
+        if (status === "OK") {
+        fullRoute = response.routes[0].overview_path.map(p => ({ lat: p.lat(), lng: p.lng() }));
+        localStorage.setItem(perCarKey("fullRoute"), JSON.stringify(fullRoute));
+        directionsRenderer.setDirections(response);
+        document.getElementById("etaBox").style.display = "block";
+        document.getElementById("confirmRideBtn").style.display = "inline-block"; // <-- show confirm!
+        document.getElementById("rideProgressIndicator").style.display = "none";
+        disableBtn("confirmRideBtn", false);
+        
+        // Don't calculate ETA locally - wait for backend calculation
+        // Just show a placeholder until backend provides the real ETA
+        document.getElementById("etaText").textContent = "Calculating...";
+        document.getElementById("liveETA").textContent = "Calculating...";
+        
+        // Request ETA from backend immediately
+        socket.emit("get-eta", {
+          carId: selectedCar,
+          route: fullRoute
+        });
+        
+        console.log(`🕐 Route calculated with ${fullRoute.length} points, requesting ETA from backend...`);
+        disableBtn("calcRouteBtn", false);
+      } else {
+        showToast("Route could not be calculated (maybe out of service area).", "error");
+        disableBtn("calcRouteBtn", false);
+      }
+      });
+    });
+  }
+
+  function confirmRide() {
+    if (!selectedCarObj) return showToast("Please select a car.", "error");
+    if (selectedCarObj.status !== "Idle") return showToast("Car must be idle to start a ride.", "error");
+    if (!fullRoute || !fullRoute.length) return showToast("No route calculated!", "warning");
+    if (selectedCarObj.battery <= 0) return showToast("Battery is dead. Please charge the car.", "error");
+    if (selectedCarObj.battery < 10) return showToast("Battery too low for ride! Please charge first.", "error");
+    if (selectedCarObj.battery < 20) {
+      showToast("Warning: Battery is below 20%. Ride may not complete.", "warning");
+    }
+    disableBtn("confirmRideBtn", true);
+    fetch(`${API_URL}/start-ride`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ carId: selectedCar, route: fullRoute }),
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "started") {
+        showToast("🚗 Ride started!", "success");
+        
+        // Immediately update car status locally
+        selectedCarObj.status = "Working";
+        
+        // Update the car card status indicator immediately
+        const statusIndicator = document.querySelector(`[data-car-id="${selectedCar}"] .status-indicator`);
+        if (statusIndicator) {
+          const statusClass = getStatusClass("Working");
+          statusIndicator.className = `status-indicator ${statusClass}`;
+          statusIndicator.innerHTML = `<i class="fa-solid fa-circle"></i> Working`;
+        }
+        
+        // Add active ride indicator immediately
+        const carCard = document.querySelector(`[data-car-id="${selectedCar}"]`);
+        if (carCard) {
+          carCard.classList.add('active-ride');
+          
+          // Add active ride indicator if it doesn't exist
+          let activeRideIndicator = carCard.querySelector('.active-ride-indicator');
+          if (!activeRideIndicator) {
+            activeRideIndicator = document.createElement('div');
+            activeRideIndicator.className = 'active-ride-indicator';
+            activeRideIndicator.innerHTML = `
+              <div class="ride-status">
+                <i class="fa-solid fa-route"></i>
+                <span>Car in use - Ride in progress</span>
+              </div>
+            `;
+            carCard.appendChild(activeRideIndicator);
+          }
+        }
+        
+        // Update live car info
+        document.getElementById("liveCarInfo").textContent = `🚗 Moving | Battery: ${selectedCarObj.battery}%`;
+        
+        // Store active ride state for page refresh recovery
+        localStorage.setItem(perCarKey("activeRide"), JSON.stringify({
+          carId: selectedCar,
+          carName: selectedCarObj.name,
+          route: fullRoute,
+          startTime: Date.now(),
+          status: "in_progress"
+        }));
+        
+        // Update UI for active ride
+        document.querySelector("#etaBox button[onclick='confirmRide()']").style.display = "none";
+        document.getElementById("destinationInput").style.display = "none";
+        disableBtn("calcRouteBtn", true);
+        document.getElementById("rideProgressIndicator").style.display = "block";
+        
+        // Show cancel ride button
+        showCancelRideButton();
+        
+        // Start ETA countdown now that ride has started
+        startEtaCountdown();
+        
+        socket.emit("get-eta", {
+          carId: selectedCar,
+          route: fullRoute
+        });
+        localStorage.setItem(perCarKey("etaStartTime"), Date.now().toString());
+      } else {
+        showToast(data.error || data.message || "❌ Failed to start ride.", "error");
+        disableBtn("confirmRideBtn", false);
+      }
+    })
+    .catch(err => {
+      showToast("Network/server error: " + err.message, "error");
+      disableBtn("confirmRideBtn", false);
+    });
+  }
+
+  function showCancelRideButton() {
+    // Show cancel ride button in the route panel
+    const routePanel = document.getElementById("routePanel");
+    let cancelButton = document.getElementById("cancelRideBtn");
+    
+    if (!cancelButton) {
+      cancelButton = document.createElement("button");
+      cancelButton.id = "cancelRideBtn";
+      cancelButton.textContent = "Cancel Ride";
+      cancelButton.onclick = cancelRide;
+      cancelButton.style.backgroundColor = "#d32f2f";
+      cancelButton.style.marginTop = "10px";
+      routePanel.appendChild(cancelButton);
+    }
+    
+    cancelButton.style.display = "block";
+  }
+
+  function hideCancelRideButton() {
+    const cancelButton = document.getElementById("cancelRideBtn");
+    if (cancelButton) {
+      cancelButton.style.display = "none";
+    }
+  }
+
+  // --- CANCEL RIDE: Inline "are you sure?" UI ---
+  function cancelRide() {
+    if (!selectedCarObj) return showToast("Please select a car.", "error");
+    if (selectedCarObj.status !== "Working" && !localStorage.getItem(perCarKey("fullRoute"))) {
+      return showToast("No active ride to cancel.", "warning");
+    }
+    const confirmRow = document.getElementById("cancel-confirm-row");
+    if (!confirmRow) return;
+    // Already visible? Don't add again
+    if (confirmRow.style.display === "flex") return;
+    confirmRow.innerHTML = `
+      <button id="cancelConfirmBtn">Are you sure?</button>
+      <button id="cancelAbortBtn">Keep Ride</button>
+    `;
+    confirmRow.style.display = "flex";
+
+    document.getElementById("cancelConfirmBtn").onclick = function() {
+      disableBtn("cancelConfirmBtn", true);
+      fetch(`${API_URL}/cancel-ride`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ carId: selectedCar }),
+      }).then(async res => {
+        let data = await res.json().catch(() => ({}));
+        
+        // Clear all ride state
+        clearCarRideState();
+        showDefaultRouteUI();
+        hideCancelRideButton();
+        
+        // Update car status locally
+        if (selectedCarObj) {
+          selectedCarObj.status = "Idle";
+          
+          // Update car card status indicator
+          const statusIndicator = document.querySelector(`[data-car-id="${selectedCar}"] .status-indicator`);
+          if (statusIndicator) {
+            const statusClass = getStatusClass("Idle");
+            statusIndicator.className = `status-indicator ${statusClass}`;
+            statusIndicator.innerHTML = `<i class="fa-solid fa-circle"></i> Idle`;
+          }
+          
+          // Remove active ride indicator immediately
+          const carCard = document.querySelector(`[data-car-id="${selectedCar}"]`);
+          if (carCard) {
+            carCard.classList.remove('active-ride');
+            
+            // Remove active ride indicator if it exists
+            const activeRideIndicator = carCard.querySelector('.active-ride-indicator');
+            if (activeRideIndicator) {
+              activeRideIndicator.remove();
+            }
+          }
+          
+          // Update live car info
+          document.getElementById("liveCarInfo").textContent = `🚘 Selected: ${selectedCarObj.name || 'Car'}`;
+        }
+        
+        disableBtn("cancelConfirmBtn", false);
+        confirmRow.style.display = "none";
+        if (data.status === "cancelled") {
+          showToast("❌ Ride cancelled.", "info");
+        } else {
+          showToast(data.error || "No ride was in progress.", "warning");
+        }
+      }).catch(err => {
+        showToast("Network/server error: " + err.message, "error");
+        disableBtn("cancelConfirmBtn", false);
+      });
+    };
+    document.getElementById("cancelAbortBtn").onclick = function() {
+      confirmRow.style.display = "none";
+    };
+  }
+
+  function chargeCar() {
+    if (!selectedCarObj) return showToast("Please select a car.", "error");
+    if (selectedCarObj.battery >= 100) return showToast("Battery already full!", "warning");
+    if (selectedCarObj.status === "Working") return showToast("Car must be idle to charge!", "error");
+    if (selectedCarObj.status === "Charging") return showToast("Car is already charging!", "info");
+    disableBtn("chargeBtn", true);
+
+    fetch(`${API_URL}/charge-car`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ carId: selectedCar }),
+    })
+      .then(async res => {
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = { status: "error", message: "Non-JSON response: " + text }; }
+        if (data.status === "charging") {
+          showToast("⚡ Charging started!", "success");
+          document.getElementById("pauseChargeBtn").style.display = "inline-block";
+        } else {
+          showToast(data.error || data.message || "⚠️ Charging failed: Unknown error.", "error");
+        }
+        disableBtn("chargeBtn", false);
+      })
+      .catch(err => {
+        showToast("⚠️ Network or server error: " + err.message, "error");
+        disableBtn("chargeBtn", false);
+      });
+  }
+
+  function pauseCharging() {
+    if (!selectedCarObj) return showToast("Please select a car.", "error");
+    if (selectedCarObj.status !== "Charging") return showToast("Car is not currently charging!", "warning");
+    disableBtn("pauseChargeBtn", true);
+
+    fetch(`${API_URL}/pause-charging`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ carId: selectedCar }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "paused") {
+          showToast("⏸️ Charging paused.", "info");
+          document.getElementById("pauseChargeBtn").style.display = "none";
+        } else {
+          showToast(data.error || data.message || "⚠️ Pause failed: Unknown error.", "error");
+        }
+        disableBtn("pauseChargeBtn", false);
+      })
+      .catch(err => {
+        showToast("⚠️ Network or server error: " + err.message, "error");
+        disableBtn("pauseChargeBtn", false);
+      });
+  }
+
+  function updateEta() {
+    const formattedTime = formatEtaTime(etaSecondsRemaining);
+    document.getElementById("etaText").textContent = formattedTime;
+    document.getElementById("liveETA").textContent = formattedTime;
+  }
+
+  function formatEtaTime(totalSeconds) {
+    if (totalSeconds <= 0) return "0s";
+    
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    
+    // Consistent formatting: always show seconds, only show minutes if > 0
+    if (mins > 0) {
+      return `${mins}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  }
+
+  function startEtaCountdown() {
+    // Clear any existing timer first
+    clearInterval(etaTimer);
+    etaTimer = null;
+    
+    // Start new countdown timer
+    localStorage.setItem(perCarKey("etaStartTime"), Date.now());
+    etaTimer = setInterval(() => {
+      etaSecondsRemaining = Math.max(0, etaSecondsRemaining - 1);
+      updateEta();
+      localStorage.setItem(perCarKey("etaSecondsRemaining"), etaSecondsRemaining);
+      
+      if (etaSecondsRemaining <= 0) {
+        clearInterval(etaTimer);
+        etaTimer = null;
+      }
+    }, 1000);
+  }
+
+  function stopEtaCountdown() {
+    clearInterval(etaTimer);
+    etaTimer = null;
+  }
+
+  function getBatteryClass(battery) {
+    const level = parseInt(battery) || 0;
+    if (level <= 15) return "battery-critical";
+    if (level <= 30) return "battery-low";
+    if (level <= 60) return "battery-medium";
+    return "battery-good";
+  }
+
+  function getBatteryIcon(battery) {
+    const level = parseInt(battery) || 0;
+    if (level <= 15) return "empty";
+    if (level <= 30) return "quarter";
+    if (level <= 60) return "half";
+    if (level <= 85) return "three-quarters";
+    return "full";
+  }
+  
+  function getStatusClass(status) {
+    if (!status) return "status-idle";
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('working') || statusLower.includes('busy')) return "status-working";
+    if (statusLower.includes('charging')) return "status-charging";
+    if (statusLower.includes('maintenance') || statusLower.includes('repair')) return "status-maintenance";
+    return "status-idle";
+  }
+
+  function updateChargingEstimate() {
+    if (!selectedCarObj) return;
+    let battery = selectedCarObj.battery;
+    let status = selectedCarObj.status;
+    let est = "--";
+    if (battery >= 100) est = "Fully charged";
+    else if (status === "Charging") est = `${((100 - battery) * 0.5).toFixed(1)}s`;
+    document.getElementById("batteryTillfull").textContent = est;
+    if (chargingTimer) clearInterval(chargingTimer);
+    if (status === "Charging") {
+      chargingTimer = setInterval(() => {
+        let cur = parseFloat(document.getElementById("batteryPercent").textContent) || 0;
+        let remain = Math.max(0, 100 - cur);
+        if (remain === 0) {
+          document.getElementById("batteryTillfull").textContent = "Fully charged";
+          clearInterval(chargingTimer);
+        } else {
+          document.getElementById("batteryTillfull").textContent = `${(remain * 0.5).toFixed(1)}s`;
+        }
+      }, 800);
+    }
+  }
+
+  // SOCKET.IO HANDLERS
+  socket.on("connect", () => {
+    showToast("Connected to server!", "success");
+  });
+
+  socket.on("car-update", (data) => {
+    console.log('📍 Car location update received:', data);
+    
+    // Update map marker position with proper validation
+    const marker = carMarkers[data.carId];
+    if (marker && data.lat && data.lng) {
+      const newPosition = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+      marker.setPosition(newPosition);
+      console.log(`🗺️ Updated map marker for car ${data.carId} to:`, newPosition);
+    }
+    
+    // Update battery and status displays
+    const batteryIndicator = document.querySelector(`[data-car-id="${data.carId}"] .battery-indicator`);
+    const statusIndicator = document.querySelector(`[data-car-id="${data.carId}"] .status-indicator`);
+    
+    if (batteryIndicator && data.battery !== undefined) {
+      const batteryLevel = parseInt(data.battery) || 0;
+      const batteryClass = getBatteryClass(batteryLevel);
+      const batteryIcon = getBatteryIcon(batteryLevel);
+      
+      batteryIndicator.className = `battery-indicator ${batteryClass}`;
+      batteryIndicator.innerHTML = `<i class="fa-solid fa-battery-${batteryIcon}"></i> ${batteryLevel}%`;
+    }
+    
+    if (statusIndicator && data.status) {
+      const statusClass = getStatusClass(data.status);
+      statusIndicator.className = `status-indicator ${statusClass}`;
+      statusIndicator.innerHTML = `<i class="fa-solid fa-circle"></i> ${data.status}`;
+      
+      // Update car card active-ride class and indicator based on status
+      const carCard = document.querySelector(`[data-car-id="${data.carId}"]`);
+      if (carCard) {
+        if (data.status === "Working") {
+          carCard.classList.add('active-ride');
+          
+          // Add active ride indicator if it doesn't exist
+          let activeRideIndicator = carCard.querySelector('.active-ride-indicator');
+          if (!activeRideIndicator) {
+            activeRideIndicator = document.createElement('div');
+            activeRideIndicator.className = 'active-ride-indicator';
+            activeRideIndicator.innerHTML = `
+              <div class="ride-status">
+                <i class="fa-solid fa-route"></i>
+                <span>Car in use - Ride in progress</span>
+              </div>
+            `;
+            carCard.appendChild(activeRideIndicator);
+          }
+        } else {
+          carCard.classList.remove('active-ride');
+          
+          // Remove active ride indicator if it exists
+          const activeRideIndicator = carCard.querySelector('.active-ride-indicator');
+          if (activeRideIndicator) {
+            activeRideIndicator.remove();
+          }
+        }
+      }
+    }
+    
+    // Live UI update for selected car
+    if (String(selectedCar) === String(data.carId)) {
+      selectedCarObj = {
+        ...selectedCarObj,
+        battery: data.battery,
+        status: data.status,
+        location: { lat: parseFloat(data.lat), lng: parseFloat(data.lng) }
+      };
+      
+      // Update live car info with appropriate status message
+      const statusMessage = data.status === "Working" ? "🚗 Moving" : `🚗 ${data.status}`;
+      document.getElementById("liveCarInfo").textContent = `${statusMessage} | Battery: ${data.battery}%`;
+      document.getElementById("batteryPercent").textContent = `${data.battery}%`;
+      document.getElementById("chargeStatus").textContent = data.status;
+      document.getElementById("pauseChargeBtn").style.display = data.status === "Charging" ? "inline-block" : "none";
+      updateChargingEstimate();
+      
+      // Process ETA data from backend if available
+      if (data.driverETA && data.status === "Working") {
+        // Convert backend ETA format (e.g., "5m 30s") to seconds
+        const etaMatch = data.driverETA.match(/(\d+)m\s*(\d+)s/);
+        let totalSeconds = 0;
+        
+        if (etaMatch) {
+          const minutes = parseInt(etaMatch[1]) || 0;
+          const seconds = parseInt(etaMatch[2]) || 0;
+          totalSeconds = minutes * 60 + seconds;
+        } else {
+          // Handle direct seconds format (e.g., "45s")
+          const secondsMatch = data.driverETA.match(/(\d+)s/);
+          if (secondsMatch) {
+            totalSeconds = parseInt(secondsMatch[1]) || 0;
+          }
+        }
+        
+        if (totalSeconds > 0) {
+          // Only update ETA if this is significantly different to avoid constant switching
+          const currentEta = etaSecondsRemaining;
+          
+          // Allow small differences (within 3 seconds) to prevent flickering
+          if (Math.abs(currentEta - totalSeconds) > 3) {
+            console.log(`🕐 Backend ETA update: ${totalSeconds}s (was ${currentEta}s)`);
+            etaSecondsRemaining = totalSeconds;
+            localStorage.setItem(perCarKey("etaSecondsRemaining"), etaSecondsRemaining);
+            localStorage.setItem(perCarKey("etaStartTime"), Date.now().toString());
+            updateEta();
+            
+            // Only restart countdown if not already running
+            if (!etaTimer) {
+              startEtaCountdown();
+            }
+            
+            document.getElementById("etaBox").style.display = "block";
+          }
+        }
+      }
+      
+      // Update location with geocoding
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: parseFloat(data.lat), lng: parseFloat(data.lng) } }, (results, status) => {
+        if (status === "OK" && results[0]) {
+          document.getElementById("carLocation").textContent = `Location: ${results[0].formatted_address}`;
+          document.getElementById("liveLocation").textContent = results[0].formatted_address;
+        } else {
+          const latLng = `(${parseFloat(data.lat).toFixed(5)}, ${parseFloat(data.lng).toFixed(5)})`;
+          document.getElementById("carLocation").textContent = `Location: ${latLng}`;
+          document.getElementById("liveLocation").textContent = latLng;
+        }
+      });
+    }
+    // Toast for battery dead on any car
+    if (data.status === "Idle" && data.battery <= 0) {
+      showToast(`⚠️ ${data.carId === selectedCar ? "This car" : `Car ${data.carId}`} ran out of battery and stopped.`, "warning");
+      if (data.carId === selectedCar) {
+        clearCarRideState();
+        showDefaultRouteUI();
+        stopEtaCountdown();
+      }
+    }
+    // Toast for finished charging on any car
+    if (data.status === "Idle" && data.battery >= 100) {
+      showToast(`Car ${data.carId === selectedCar ? "selected" : data.carId} finished charging.`, "success");
+      updateChargingEstimate();
+    }
+  });
+
+  // Handle ETA responses from backend
+  socket.on("eta-response", (data) => {
+    console.log('🕐 ETA response received:', data);
+    
+    if (data.carId === selectedCar && data.eta) {
+      // Parse the ETA from backend (could be in various formats)
+      let totalSeconds = 0;
+      
+      // Try different formats: "5m 30s", "45s", or direct number
+      const etaStr = data.eta.toString();
+      const minutesSecondsMatch = etaStr.match(/(\d+)m\s*(\d+)s/);
+      const secondsOnlyMatch = etaStr.match(/(\d+)s/);
+      
+      if (minutesSecondsMatch) {
+        const minutes = parseInt(minutesSecondsMatch[1]) || 0;
+        const seconds = parseInt(minutesSecondsMatch[2]) || 0;
+        totalSeconds = minutes * 60 + seconds;
+      } else if (secondsOnlyMatch) {
+        totalSeconds = parseInt(secondsOnlyMatch[1]) || 0;
+      } else if (!isNaN(parseInt(etaStr))) {
+        totalSeconds = parseInt(etaStr);
+      }
+      
+      if (totalSeconds > 0) {
+        etaSecondsRemaining = totalSeconds;
+        localStorage.setItem(perCarKey("etaSecondsRemaining"), etaSecondsRemaining);
+        localStorage.setItem(perCarKey("etaStartTime"), Date.now().toString());
+        updateEta();
+        
+        console.log(`🕐 ETA set to: ${formatEtaTime(totalSeconds)} (${totalSeconds}s)`);
+        
+        // Show the ETA box if it's not visible
+        document.getElementById("etaBox").style.display = "block";
+      }
+    }
+  });
+
+  // Removed duplicate eta-update handler - ETA is now handled through car-update events only
+
+  // ---- NEW: Ride completed handler ----
+  socket.on("ride-completed", (data) => {
+    console.log('🏁 Ride completed:', data);
+    localStorage.removeItem(`fullRoute_${data.carId}`);
+    localStorage.removeItem(`etaSecondsRemaining_${data.carId}`);
+    localStorage.removeItem(`etaStartTime_${data.carId}`);
+    localStorage.removeItem(`activeRide_${data.carId}`);
+
+    // Remove active ride indicator for completed ride
+    const carCard = document.querySelector(`[data-car-id="${data.carId}"]`);
+    if (carCard) {
+      carCard.classList.remove('active-ride');
+      
+      // Remove active ride indicator if it exists
+      const activeRideIndicator = carCard.querySelector('.active-ride-indicator');
+      if (activeRideIndicator) {
+        activeRideIndicator.remove();
+      }
+    }
+
+    if (String(selectedCar) === String(data.carId)) {
+      clearCarRideState();
+      showDefaultRouteUI();
+      stopEtaCountdown();
+      document.getElementById("cancel-confirm-row").style.display = "none";
+      
+      // Show completion toast
+      if (data.reason === "Completed") {
+        showToast(`🎉 Ride completed successfully!`, "success");
+      } else {
+        let reasonMsg = data.reason === "Battery dead" ? " (battery dead)" : "";
+        showToast(`🚗 Ride finished${reasonMsg}.`, "info");
+      }
+    } else {
+      // For other cars
+      let reasonMsg = data.reason === "Battery dead" ? " (battery dead)" : "";
+      showToast(`🚗 Ride finished for car ${data.carId}${reasonMsg}.`, "info");
+    }
+  });
+
+</script>
+</body>
+</html>

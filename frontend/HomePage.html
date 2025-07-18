@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CarmaGO - Home</title>
+  <link rel="stylesheet" href="styles/navbar.css" />
+  <link rel="stylesheet" href="styles/HomePagestyles.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="auth.js"></script>
+  
+  <style>
+    /* Toast notification styles */
+    #toast-container {
+      position: fixed;
+      right: 30px;
+      bottom: 30px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .toast {
+      min-width: 220px;
+      max-width: 340px;
+      background: #222;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.11);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(30px) scale(0.95);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.28s, transform 0.28s;
+    }
+    .toast.toast-success { background: #43b54b; color: #fff; }
+    .toast.toast-error { background: #d62f2f; color: #fff; }
+    .toast.toast-info { background: #3465a4; color: #fff; }
+    .toast.toast-warning { background: #eab307; color: #222; }
+    .toast.toast-show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .toast .toast-icon { font-size: 19px; }
+  </style>
+</head>
+<body id="top">
+
+<!-- NAVIGATION -->
+<header class="navbar" data-page="home">
+  <div class="nav-container">
+    <a href="HomePage.html" class="logo">
+      <div class="logo-circle"></div>
+      <span class="logo-text">CarmaGO</span>
+    </a>
+    
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    
+    <nav>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="HomePage.html" class="active"><i class="fas fa-home nav-icon"></i>Home</a></li>
+        <li><a href="req-ride.html" data-auth-required="true"><i class="fas fa-car nav-icon"></i>Request Ride</a></li>
+        <li><a href="account.html" data-auth-required="true"><i class="fas fa-user nav-icon"></i>Account</a></li>
+        <li><a href="locate-car.html" data-auth-required="true"><i class="fas fa-map-marker-alt nav-icon"></i>Locate Cars</a></li>
+        <li><a href="taxi-job.html" data-auth-required="true"><i class="fas fa-taxi nav-icon"></i>Taxi Jobs</a></li>
+      </ul>
+    </nav>
+    
+    <div class="auth-actions">
+      <span id="welcome-msg" class="welcome-message"></span>
+      <button id="logout-btn" class="signup-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i>Logout
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO SECTION -->
+<section class="hero-section">
+  <div class="hero-content">
+    <h1>Affordable fast comfortable rides</h1>
+    <p>Experience the future of transportation with <span class="highlight">CarmaGO</span></p>
+    <a href="signUppage.html" id="hero-btn" class="hero-btn">
+      <span>Start Now</span>
+      <i class="fas fa-arrow-right"></i>
+    </a>
+  </div>
+</section>
+
+<!-- ABOUT SECTION -->
+<section id="ride-with-ease" class="ride-ease-section">
+  <div class="container ride-ease-content">
+    <div class="ride-ease-text">
+      <h2>Ride with ease</h2>
+      <h3>Safest and budget-friendly traveling</h3>
+      <p>
+        Want to experience the safest and most comfortable ride of your life?
+        With our driverless electric cars, CarmaGO ensures safe travel. Use your personal car
+        or assign it to taxi jobs when idle — make money while relaxing at home.
+      </p>
+    </div>
+    <div class="ride-ease-image">
+      <img src="assets/images/CarOnstreert.webp" alt="Driverless car in traffic" />
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES SECTION -->
+<section id="products" class="services-section">
+  <div class="container services-content">
+    <div class="card-grid">
+      <div class="card">
+        <img src="assets/images/Services1Taxi.webp" alt="Taxi service" class="card-image" />
+        <h3 class="card-title">Taxi service</h3>
+        <p class="card-description">Send your car on taxi jobs to earn passive income.</p>
+      </div>
+      <div class="card">
+        <img src="assets/images/Services2Family.webp" alt="Personal use" class="card-image" />
+        <h3 class="card-title">Personal use</h3>
+        <p class="card-description">Use your car as your own fast, smart travel assistant.</p>
+      </div>
+    </div>
+    <div class="services-info">
+      <h2>Services that we offer</h2>
+      <p>
+        CarmaGO provides both private transport and automated taxi-job functionality
+        for your vehicle. Switch between them anytime for full flexibility and income.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container footer-content">
+    <div class="footer-left">
+      <div class="logo">
+        <div class="big-circle"></div>
+        <span class="logo-text">CarmaGO</span>
+      </div>
+    </div>
+    <div class="footer-right">
+      <h3>Contact us</h3>
+      <div class="contact-grid">
+        <div><a href="mailto:hbm.25@hotmail.com" class="contact-detail">hbm.25@hotmail.com</a></div>
+        <div class="contact-label">Email</div>
+        <div><p class="contact-detail">07586820816</p></div>
+        <div class="contact-label">Phone Number</div>
+        <div><p class="contact-detail">Bristol, England - UWE Frenchay Campus</p></div>
+        <div class="contact-label">Address</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- SCRIPT -->
+<script>
+  // Mobile menu toggle
+  function toggleMobileMenu() {
+    const navLinks = document.getElementById("nav-links");
+    const toggleBtn = document.querySelector(".mobile-menu-toggle");
+    
+    navLinks.classList.toggle("mobile-active");
+    toggleBtn.classList.toggle("active");
+  }
+
+  // Update hero button based on authentication
+  document.addEventListener('DOMContentLoaded', () => {
+    const heroBtn = document.getElementById("hero-btn");
+    
+    if (isAuthenticated()) {
+      if (heroBtn) {
+        heroBtn.textContent = "My Account";
+        heroBtn.href = "account.html";
+      }
+    }
+  });
+
+  // Toast notification system
+  function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icons = {
+      success: '✅',
+      error: '❌',
+      warning: '⚠️',
+      info: 'ℹ️'
+    };
+    
+    toast.innerHTML = `
+      <span class="toast-icon">${icons[type] || icons.info}</span>
+      <span>${message}</span>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('toast-show'), 100);
+    
+    // Remove toast
+    setTimeout(() => {
+      toast.classList.remove('toast-show');
+      setTimeout(() => {
+        if (toastContainer.contains(toast)) {
+          toastContainer.removeChild(toast);
+        }
+      }, 300);
+    }, 4000);
+  }
+
+  function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+    return container;
+  }
+
+  function logout() {
+    localStorage.clear();
+    showToast("You have been logged out successfully!", "success");
+    setTimeout(() => {
+      window.location.href = "logInpage.html";
+    }, 1500);
+  }
+</script>
+
+</body>
+</html>

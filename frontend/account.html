@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Account | CarmaGO</title>
+  <link rel="stylesheet" href="styles/navbar.css" />
+  <link rel="stylesheet" href="styles/account.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="auth.js"></script>
+  
+  <style>
+    /* Toast notification styles */
+    #toast-container {
+      position: fixed;
+      right: 30px;
+      bottom: 30px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .toast {
+      min-width: 220px;
+      max-width: 340px;
+      background: #222;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.11);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(30px) scale(0.95);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.28s, transform 0.28s;
+    }
+    .toast.toast-success { background: #43b54b; color: #fff; }
+    .toast.toast-error { background: #d62f2f; color: #fff; }
+    .toast.toast-info { background: #3465a4; color: #fff; }
+    .toast.toast-warning { background: #eab307; color: #222; }
+    .toast.toast-show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .toast .toast-icon { font-size: 19px; }
+
+    /* Car card improvements */
+    .car-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s ease;
+    }
+    .car-card:hover {
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .car-info {
+      flex: 1;
+      line-height: 1.4;
+    }
+    .delete-car-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.3s ease;
+    }
+    .delete-car-btn:hover {
+      background: #c82333;
+    }
+
+    /* Delete car modal styles */
+    .car-details-preview {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 6px;
+      margin: 12px 0;
+      border-left: 4px solid #007bff;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+    .delete-confirm-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .delete-confirm-btn:hover {
+      background: #c82333;
+    }
+    .cancel-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .cancel-btn:hover {
+      background: #5a6268;
+    }
+
+    /* Ensure modal display override */
+    #deleteCarModal.modal {
+      display: none !important;
+    }
+    #deleteCarModal.modal[style*="flex"] {
+      display: flex !important;
+      justify-content: center;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+
+<header class="navbar" data-page="account">
+  <div class="nav-container">
+    <a href="HomePage.html" class="logo">
+      <div class="logo-circle"></div>
+      <span class="logo-text">CarmaGO</span>
+    </a>
+    
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    
+    <nav>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="HomePage.html"><i class="fas fa-home nav-icon"></i>Home</a></li>
+        <li><a href="req-ride.html" data-auth-required="true"><i class="fas fa-car nav-icon"></i>Request Ride</a></li>
+        <li><a href="account.html" class="active" data-auth-required="true"><i class="fas fa-user nav-icon"></i>Account</a></li>
+        <li><a href="locate-car.html" data-auth-required="true"><i class="fas fa-map-marker-alt nav-icon"></i>Locate Cars</a></li>
+        <li><a href="taxi-job.html" data-auth-required="true"><i class="fas fa-taxi nav-icon"></i>Taxi Jobs</a></li>
+      </ul>
+    </nav>
+    
+    <div class="auth-actions">
+      <button id="logout-btn" class="signup-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i>Logout
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="main-content">
+  <!-- ACCOUNT INFO -->
+  <div class="dashboard-container">
+    <div class="account-container">
+      <img src="assets/images/default-profile-picture.png" class="profile-pic" alt="Profile Picture">
+      <div class="info-group"><i class="fas fa-user"></i><span id="firstName">Loading...</span></div>
+      <div class="info-group"><i class="fas fa-user-tag"></i><span id="lastName">Loading...</span></div>
+      <div class="info-group"><i class="fas fa-envelope"></i><span id="email">Loading...</span></div>
+      <div class="info-group"><i class="fas fa-phone"></i><span id="phone">Loading...</span></div>
+      <button class="edit-btn" onclick="openEditModal()">Edit Account Details</button>
+      <button class="delete-btn" onclick="openDeleteModal()">Delete Account</button>
+    </div>
+
+    <!-- CARS SECTION -->
+    <div class="cars-container">
+      <h2>My Cars</h2>
+      <div id="carsList">Loading...</div>
+      <button class="edit-btn" onclick="openCarModal()">+ Add New Car</button>
+    </div>
+  </div>
+
+  <!-- FINANCES SECTION + RIDE HISTORY -->
+  <div class="finances-container">
+    <div class="finances-header">
+      <h2>Financial Overview</h2>
+      <!-- Manual transaction button removed -->
+    </div>
+    <div class="finances-content">
+      <div class="finances-overview">
+        <div class="finance-card"><i class="fas fa-arrow-up"></i><h3>Total Income</h3><span id="totalIncome">£0.00</span></div>
+        <div class="finance-card"><i class="fas fa-arrow-down"></i><h3>Total Expenses</h3><span id="totalExpenses">£0.00</span></div>
+      </div>
+      <div class="finances-table-container">
+        <table class="finances-table">
+          <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Category</th></tr></thead>
+          <tbody id="transactionsList"><tr><td colspan="4">No transactions yet</td></tr></tbody>
+        </table>
+      </div>
+      <!-- 🚗 Ride History Section (NEW) -->
+      <div class="ride-history-section">
+        <h2 style="margin-top:2rem;">Ride History</h2>
+        <div id="rideHistoryList" class="ride-history-list">
+          <div style="color:#666;padding:1rem;">No rides yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Account Modal -->
+<div id="editModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h2>Edit Account</h2>
+    <form id="edit-form">
+      <input id="editFirstName" placeholder="First Name" required />
+      <input id="editLastName" placeholder="Last Name" required />
+      <input id="editEmail" type="email" placeholder="Email" required />
+      <input id="editPhone" type="tel" placeholder="Phone Number" required />
+      <button type="submit">Save Changes</button>
+      <button type="button" onclick="closeModal()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div id="deleteModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h2>Confirm Account Deletion</h2>
+    <p>Type <strong>confirm delete</strong> below to permanently delete your account.</p>
+    <input id="confirmDeleteInput" placeholder="Type here..." />
+    <button id="confirmDeleteBtn" onclick="deleteAccount()" disabled>Delete Account</button>
+    <button onclick="closeDeleteModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Add Car Modal -->
+<div id="carModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h2>Add New Car</h2>
+    <input id="newCarName" placeholder="Car Name" required />
+    <select id="carModelSelect">
+      <option value="Model A">Model A</option>
+      <option value="Model B">Model B</option>
+    </select>
+    <input id="carAddress" placeholder="Enter Address" />
+    <div id="map" style="width:100%;height:300px;margin-top:10px;"></div>
+    <button onclick="submitNewCar()">Add Car</button>
+    <button onclick="closeCarModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Delete Car Confirmation Modal -->
+<div id="deleteCarModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h2>Delete Car</h2>
+    <p>Are you sure you want to delete this car? This action cannot be undone.</p>
+    <div class="car-details-preview" id="deleteCarDetails"></div>
+    <div class="modal-buttons">
+      <button class="delete-confirm-btn" onclick="confirmDeleteCar()">Delete Car</button>
+      <button class="cancel-btn" onclick="closeDeleteCarModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Manual Transaction Modal -->
+<div id="financesModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h2>Add Manual Transaction</h2>
+    <input id="fundAmount" type="number" placeholder="Amount (£) - positive for income, negative for expense" step="0.01" required />
+    <input id="fundDescription" placeholder="Description (optional)" />
+    <button onclick="submitAddFunds()">Add Transaction</button>
+    <button onclick="closeFinancesModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+// Toast notification system
+function showToast(message, type = 'info') {
+  const toastContainer = document.getElementById('toast-container') || createToastContainer();
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] || icons.info}</span>
+    <span>${message}</span>
+  `;
+  
+  toastContainer.appendChild(toast);
+  
+  // Trigger animation
+  setTimeout(() => toast.classList.add('toast-show'), 100);
+  
+  // Remove toast
+  setTimeout(() => {
+    toast.classList.remove('toast-show');
+    setTimeout(() => {
+      if (toastContainer.contains(toast)) {
+        toastContainer.removeChild(toast);
+      }
+    }, 300);
+  }, 4000);
+}
+
+function createToastContainer() {
+  const container = document.createElement('div');
+  container.id = 'toast-container';
+  document.body.appendChild(container);
+  return container;
+}
+
+const API_URL = "http://localhost:5001";
+let carLat = null, carLng = null;
+let map, marker, autocomplete;
+let isPageInitialized = false;
+
+function initializePage() {
+  if (isPageInitialized) return;
+  isPageInitialized = true;
+
+  // Use shared authentication check
+  if (!requireAuthentication("Please log in to access your account")) {
+    return;
+  }
+
+  const user = getCurrentUser();
+  fetchUserData(user.email);
+  fetchCarsData(user.id);
+  fetchRideHistory(user.id);
+  fetchFinancialData(); // Add this line to load financial data
+  fetchRideHistory(); // Add this line to load ride history
+}
+
+function initMap() {
+  const mapDiv = document.getElementById("map");
+  if (!mapDiv) return;
+
+  map = new google.maps.Map(mapDiv, {
+    center: { lat: 51.4545, lng: -2.5879 },
+    zoom: 13
+  });
+
+  marker = new google.maps.Marker({ map, draggable: false });
+
+  autocomplete = new google.maps.places.Autocomplete(document.getElementById("carAddress"));
+  autocomplete.addListener("place_changed", () => {
+    const place = autocomplete.getPlace();
+    if (place.geometry?.location) updateMapLocation(place.geometry.location);
+  });
+
+  map.addListener("click", (e) => updateMapLocation(e.latLng));
+}
+
+function updateMapLocation(location) {
+  carLat = location.lat();
+  carLng = location.lng();
+  marker.setPosition(location);
+  map.setCenter(location);
+  map.setZoom(15);
+}
+
+function fetchUserData(email) {
+  fetch(`${API_URL}/auth/user/${email}`)
+    .then(res => res.json())
+    .then(user => {
+      ["firstName", "lastName", "email", "phone"].forEach(id => {
+        document.getElementById(id).textContent = user[id] || "";
+        document.getElementById("edit" + id.charAt(0).toUpperCase() + id.slice(1)).value = user[id] || "";
+      });
+    })
+    .catch(err => console.error("Fetch user failed:", err));
+}
+
+function fetchCarsData(userId) {
+  fetch(`${API_URL}/cars/user/${userId}`)
+    .then(res => res.json())
+    .then(cars => {
+      const carsList = document.getElementById("carsList");
+      carsList.innerHTML = cars.length
+        ? cars.map(car => `
+          <div class="car-card">
+            <div class="car-info">
+              <strong>${car.name}</strong><br>
+              ID: ${car.carId}<br>
+              Model: ${car.model || 'Unknown'}<br>
+              Status: ${car.status}<br>
+              Battery: ${car.battery}%<br>
+            </div>
+            <button class="delete-car-btn" onclick="openDeleteCarModal('${car._id}', '${car.name}', '${car.carId}')">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </div>
+        `).join("")
+        : "<p>No cars available.</p>";
+    })
+    .catch(() => {
+      document.getElementById("carsList").innerHTML = "<p>Error loading cars.</p>";
+    });
+}
+
+function formatDuration(sec) {
+  if (!sec || isNaN(sec)) return "?";
+  const mins = Math.floor(sec / 60);
+  const secs = Math.round(sec % 60);
+  return mins > 0 ? `${mins}m ${secs < 10 ? "0" : ""}${secs}s` : `${secs}s`;
+}
+
+
+function formatDuration(sec) {
+  if (!sec || isNaN(sec)) return "?";
+  const mins = Math.floor(sec / 60);
+  const secs = Math.round(sec % 60);
+  return mins > 0 ? `${mins}m ${secs < 10 ? "0" : ""}${secs}s` : `${secs}s`;
+}
+
+// ...
+
+function fetchRideHistory(userId) {
+  fetch(`${API_URL}/ride-history/${userId}`)
+    .then(res => res.json())
+    .then(rides => {
+      const list = document.getElementById("rideHistoryList");
+      if (!rides.length) {
+        list.innerHTML = '<div style="color:#666;padding:1rem;">No rides yet.</div>';
+        return;
+      }
+      list.innerHTML = rides.map(ride => `
+        <div class="ride-card">
+          <div class="ride-car"><i class="fa-solid fa-car"></i> <strong>${ride.carName || 'Car'}</strong> ${ride.carModel ? `(${ride.carModel})` : ''} ${ride.carId ? `- ID: ${ride.carId}` : ''}</div>
+          <div class="ride-path"><i class="fa-solid fa-location-dot"></i> <span>${ride.fromAddress || ride.start}</span>
+            <i class="fa-solid fa-arrow-right" style="margin:0 6px;"></i>
+            <span>${ride.toAddress || ride.end}</span>
+          </div>
+          <div class="ride-meta">
+            <span><i class="fa-solid fa-clock"></i> ${formatDuration(ride.duration)}</span>
+            <span style="margin-left:1.2em;"><i class="fa-solid fa-battery-half"></i> ${ride.batteryUsed || "?"}% used</span>
+          </div>
+          <div class="ride-date">${ride.date ? (new Date(ride.date)).toLocaleString() : ""}</div>
+          ${ride.reason && ride.reason !== "Completed" ? `
+            <div class="ride-reason" style="color:#c00; font-weight:bold;">${ride.reason}</div>
+          ` : ""}
+        </div>
+      `).join("");
+    })
+    .catch(() => {
+      document.getElementById("rideHistoryList").innerHTML = "<div style='color:#c00;padding:1rem;'>Failed to load ride history.</div>";
+    });
+}
+
+async function fetchRideHistory() {
+  const userId = localStorage.getItem("loggedInUserId");
+  
+  if (!userId) {
+    console.error("No user ID found");
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/ride-history/${userId}`);
+    const rides = await response.json();
+    
+    displayRideHistory(rides);
+  } catch (error) {
+    console.error("Failed to fetch ride history:", error);
+  }
+}
+
+function displayRideHistory(rides) {
+  const container = document.querySelector("#rideHistoryList");
+  
+  if (!container) {
+    console.error("Ride history container not found");
+    return;
+  }
+  
+  if (!rides || rides.length === 0) {
+    container.innerHTML = `
+      <div class="no-rides">
+        <p>No rides found. Start riding to see your history!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = rides.map(ride => `
+    <div class="ride-history-item ${ride.reason || ride.status}">
+      <div class="ride-header">
+        <span class="ride-status ${ride.reason || ride.status}">${(ride.reason || ride.status || 'unknown').toUpperCase()}</span>
+        <span class="ride-date">${new Date(ride.date).toLocaleDateString()}</span>
+      </div>
+      <div class="ride-details">
+        <div class="ride-route">
+          <strong>From:</strong> ${ride.fromAddress || 'Unknown location'}
+          <br>
+          <strong>To:</strong> ${ride.toAddress || 'Unknown destination'}
+        </div>
+        <div class="ride-car-info">
+          <strong>Car:</strong> ${ride.carName || 'Unknown Car'} ${ride.carModel ? `(${ride.carModel})` : ''}
+        </div>
+        ${ride.fareAmount ? `<div class="ride-fare">Fare: £${ride.fareAmount.toFixed(2)}</div>` : ''}
+        ${ride.reason && ride.reason !== ride.status ? `<div class="ride-reason">Reason: ${ride.reason}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function fetchFinancialData() {
+  const userId = localStorage.getItem("loggedInUserId");
+  
+  if (!userId) {
+    console.error("No user ID found");
+    return;
+  }
+  
+  console.log("Fetching transactions for userId:", userId);
+  
+  // Fetch transactions only (no balance)
+  fetch(`${API_URL}/finances/transactions/${userId}`)
+    .then(res => res.json())
+    .then(transactions => {
+      console.log("Received transactions:", transactions.length);
+      
+      const transactionsList = document.getElementById("transactionsList");
+      
+      if (!transactions.length) {
+        transactionsList.innerHTML = '<tr><td colspan="4">No transactions yet</td></tr>';
+        return;
+      }
+
+      // Calculate totals based on transaction type, not just amount sign
+      let totalIncome = 0;
+      let totalExpenses = 0;
+      
+      transactions.forEach(t => {
+        if (t.type === 'ride_earning' || (t.type === 'manual' && t.amount > 0)) {
+          totalIncome += Math.abs(t.amount);
+        } else if (t.type === 'ride_payment' || (t.type === 'manual' && t.amount < 0)) {
+          totalExpenses += Math.abs(t.amount);
+        }
+      });
+
+      // Update summary cards
+      document.getElementById("totalIncome").textContent = `£${totalIncome.toFixed(2)}`;
+      document.getElementById("totalExpenses").textContent = `£${totalExpenses.toFixed(2)}`;
+
+      // Populate transactions table
+      transactionsList.innerHTML = transactions.map(transaction => {
+        const date = new Date(transaction.timestamp).toLocaleDateString();
+        const amount = Math.abs(transaction.amount);
+        
+        // Determine if it's income or expense based on type
+        const isIncome = transaction.type === 'ride_earning' || (transaction.type === 'manual' && transaction.amount > 0);
+        const amountClass = isIncome ? 'text-green' : 'text-red';
+        const amountDisplay = isIncome ? `+£${amount.toFixed(2)}` : `-£${amount.toFixed(2)}`;
+        
+        return `
+          <tr>
+            <td>${date}</td>
+            <td>${transaction.description}</td>
+            <td class="${amountClass}">${amountDisplay}</td>
+            <td>${getCategoryLabel(transaction.type)}</td>
+          </tr>
+        `;
+      }).join("");
+    })
+    .catch(err => {
+      console.error("Failed to fetch transactions:", err);
+      document.getElementById("transactionsList").innerHTML = '<tr><td colspan="4">Failed to load transactions</td></tr>';
+    });
+}
+
+function getCategoryLabel(type) {
+  const labels = {
+    'ride_payment': 'Ride Payment',
+    'ride_earning': 'Ride Earning',
+    'manual': 'Manual'
+  };
+  return labels[type] || type;
+}
+
+function addManualTransaction() {
+  const amount = prompt("Enter amount (£) - positive for income, negative for expense:");
+  if (!amount || isNaN(amount) || parseFloat(amount) === 0) {
+    showToast("Please enter a valid amount", "error");
+    return;
+  }
+
+  const userId = localStorage.getItem("loggedInUserId");
+  
+  fetch(`${API_URL}/finances/add-funds`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: userId,
+      amount: parseFloat(amount),
+      description: "Manual transaction"
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert(`Transaction of £${amount} recorded successfully!`);
+      location.reload(); // Refresh to show updated data
+    } else {
+      showToast(`Failed to record transaction: ${data.error}`, "error");
+    }
+  })
+  .catch(err => {
+    console.error("Failed to add transaction:", err);
+    showToast("Failed to record transaction. Please try again.", "error");
+  });
+}
+
+function submitAddFunds() {
+  const amount = document.getElementById("fundAmount").value;
+  const description = document.getElementById("fundDescription").value || "Manual transaction";
+  
+  if (!amount || isNaN(amount) || parseFloat(amount) === 0) {
+    alert("Please enter a valid amount");
+    return;
+  }
+
+  const userId = localStorage.getItem("loggedInUserId");
+  
+  fetch(`${API_URL}/finances/add-funds`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: userId,
+      amount: parseFloat(amount),
+      description: description
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      showToast(`Transaction of £${Math.abs(amount)} recorded successfully!`, "success");
+      closeFinancesModal();
+      // Clear form
+      document.getElementById("fundAmount").value = "";
+      document.getElementById("fundDescription").value = "";
+      // Refresh financial data
+      fetchFinancialData();
+    } else {
+      showToast(`Failed to record transaction: ${data.error}`, "error");
+    }
+  })
+  .catch(err => {
+    console.error("Failed to record transaction:", err);
+    showToast("Failed to record transaction. Please try again.", "error");
+  });
+}
+
+function submitNewCar() {
+  const userEmail = localStorage.getItem("loggedInUser");
+  const userId = localStorage.getItem("loggedInUserId");
+  const name = document.getElementById("newCarName").value;
+  const model = document.getElementById("carModelSelect").value;
+  const carId = Math.floor(100000 + Math.random() * 900000);
+
+  if (!name || carLat === null || carLng === null) {
+    return showToast("Complete all fields and pick a location.", "error");
+  }
+
+  fetch(`${API_URL}/cars`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: userEmail,
+      userId,
+      name,
+      model,
+      carId,
+      lat: carLat,
+      lng: carLng
+    })
+  })
+    .then(res => res.json())
+    .then(msg => {
+      showToast("Car added successfully!", "success");
+      closeCarModal();
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    })
+    .catch(() => showToast("Failed to add car", "error"));
+}
+
+function deleteCar(carId) {
+  fetch(`${API_URL}/cars/${carId}`, { method: "DELETE" })
+    .then(res => res.text())
+    .then(msg => { 
+      showToast("Car deleted successfully", "success"); 
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    })
+    .catch(() => showToast("Delete failed", "error"));
+}
+
+let carToDelete = null;
+
+function openDeleteCarModal(carId, carName, carIdDisplay) {
+  console.log('Opening delete car modal for:', carName, carId);
+  carToDelete = carId;
+  document.getElementById('deleteCarDetails').innerHTML = `
+    <strong>Car Name:</strong> ${carName}<br>
+    <strong>Car ID:</strong> ${carIdDisplay}
+  `;
+  const modal = document.getElementById('deleteCarModal');
+  modal.style.display = 'flex';
+  console.log('Modal display set to:', modal.style.display);
+}
+
+function closeDeleteCarModal() {
+  carToDelete = null;
+  document.getElementById('deleteCarModal').style.display = 'none';
+}
+
+function confirmDeleteCar() {
+  if (carToDelete) {
+    deleteCar(carToDelete);
+    closeDeleteCarModal();
+  }
+}
+
+function deleteAccount() {
+  const email = localStorage.getItem("loggedInUser");
+  fetch(`${API_URL}/auth/delete/${email}`, { method: "DELETE" })
+    .then(res => {
+      if (res.ok) {
+        showToast("Account deleted successfully", "success");
+        localStorage.clear();
+        setTimeout(() => {
+          window.location.href = "signUppage.html";
+        }, 1500);
+      } else showToast("Failed to delete account", "error");
+    });
+}
+
+document.getElementById("edit-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const updatedData = {
+    currentEmail: localStorage.getItem("loggedInUser"),
+    firstName: document.getElementById("editFirstName").value,
+    lastName: document.getElementById("editLastName").value,
+    email: document.getElementById("editEmail").value,
+    phone: document.getElementById("editPhone").value
+  };
+  const res = await fetch(`${API_URL}/auth/update`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updatedData)
+  });
+  const msg = await res.text();
+  if (res.ok) {
+    localStorage.setItem("loggedInUser", updatedData.email);
+    showToast("Account updated successfully", "success");
+    location.reload();
+  } else showToast("Update failed: " + msg, "error");
+});
+
+document.getElementById("confirmDeleteInput").addEventListener("input", function () {
+  document.getElementById("confirmDeleteBtn").disabled = this.value.trim().toLowerCase() !== "confirm delete";
+});
+
+function openEditModal() {
+  document.getElementById("editModal").style.display = "flex";
+}
+function openCarModal() {
+  document.getElementById("carModal").style.display = "flex";
+}
+function openDeleteModal() {
+  document.getElementById("deleteModal").style.display = "flex";
+  document.getElementById("confirmDeleteInput").value = "";
+  document.getElementById("confirmDeleteBtn").disabled = true;
+}
+function openFinancesModal() {
+  document.getElementById("financesModal").style.display = "flex";
+}
+function closeModal() {
+  document.getElementById("editModal").style.display = "none";
+}
+function closeCarModal() {
+  document.getElementById("carModal").style.display = "none";
+}
+function closeDeleteModal() {
+  document.getElementById("deleteModal").style.display = "none";
+}
+function closeFinancesModal() {
+  document.getElementById("financesModal").style.display = "none";
+}
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+  const navLinks = document.getElementById("nav-links");
+  const toggleBtn = document.querySelector(".mobile-menu-toggle");
+  
+  navLinks.classList.toggle("mobile-active");
+  toggleBtn.classList.toggle("active");
+}
+
+function logout() {
+  localStorage.clear();
+  showToast("You have been logged out successfully!", "success");
+  setTimeout(() => {
+    window.location.href = "logInpage.html";
+  }, 1500);
+}
+
+document.addEventListener("DOMContentLoaded", initializePage);
+window.initMap = initMap;
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-8K0ndNli1FxzigKdSe3T0bnqUCw3D_o&libraries=places&callback=initMap">
+</script>
+</body>
+</html>

@@ -1,0 +1,787 @@
+/* ===========================
+   ACCOUNT PAGE - PROFESSIONAL STYLING
+   =========================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #1F2825 0%, #2a3530 100%);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  color: #333;
+  overflow-x: hidden;
+}
+
+/* Background decoration */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(124, 112, 91, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(231, 225, 211, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.main-content {
+  margin-top: 100px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ===========================
+   DASHBOARD CONTAINER
+   =========================== */
+
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* ===========================
+   ACCOUNT CONTAINER
+   =========================== */
+
+.account-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  text-align: center;
+  animation: slideInLeft 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+}
+
+.account-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #7C705B, transparent);
+  animation: shimmer 3s infinite;
+}
+
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+  border: 4px solid rgba(124, 112, 91, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-pic:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 40px rgba(124, 112, 91, 0.3);
+}
+
+.info-group {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+  gap: 15px;
+  font-size: 1rem;
+  color: #333;
+  background: rgba(231, 225, 211, 0.3);
+  backdrop-filter: blur(10px);
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.info-group:hover {
+  background: rgba(231, 225, 211, 0.4);
+  transform: translateX(5px);
+}
+
+.info-group i {
+  color: #7C705B;
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* ===========================
+   CARS CONTAINER
+   =========================== */
+
+.cars-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  animation: slideInRight 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+}
+
+.cars-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #7C705B, transparent);
+  animation: shimmer 3s infinite 0.5s;
+}
+
+.cars-container h2 {
+  margin: 0 0 1.5rem 0;
+  color: #1F2825;
+  font-weight: 700;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+#carsList {
+  max-height: 350px;
+  overflow-y: auto;
+  margin-bottom: 1.5rem;
+  padding-right: 0.5rem;
+}
+
+#carsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+#carsList::-webkit-scrollbar-track {
+  background: rgba(231, 225, 211, 0.2);
+  border-radius: 3px;
+}
+
+#carsList::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #7C705B, #9A8A72);
+  border-radius: 3px;
+}
+
+.car-card {
+  background: rgba(231, 225, 211, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.car-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #7C705B, #9A8A72);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.car-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(124, 112, 91, 0.2);
+}
+
+.car-card:hover::before {
+  transform: scaleX(1);
+}
+
+/* ===========================
+   FINANCES CONTAINER
+   =========================== */
+
+.finances-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  animation: fadeInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s both;
+  position: relative;
+  overflow: hidden;
+}
+
+.finances-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #7C705B, transparent);
+  animation: shimmer 3s infinite 1s;
+}
+
+.finances-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.finances-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1F2825;
+}
+
+.finances-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.finance-card {
+  background: linear-gradient(135deg, rgba(124, 112, 91, 0.1), rgba(231, 225, 211, 0.1));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.finance-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #7C705B, #9A8A72);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.finance-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(124, 112, 91, 0.2);
+}
+
+.finance-card:hover::before {
+  transform: scaleX(1);
+}
+
+.finance-card i {
+  font-size: 2rem;
+  color: #7C705B;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.finance-card h3 {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.finance-card span {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1F2825;
+  display: block;
+}
+
+/* ===========================
+   TRANSACTIONS TABLE
+   =========================== */
+
+.finances-table-container {
+  overflow-x: auto;
+  border-radius: 15px;
+  background: rgba(231, 225, 211, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.finances-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.finances-table th {
+  background: linear-gradient(135deg, #7C705B, #9A8A72);
+  color: white;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  border: none;
+}
+
+.finances-table th:first-child {
+  border-radius: 15px 0 0 0;
+}
+
+.finances-table th:last-child {
+  border-radius: 0 15px 0 0;
+}
+
+.finances-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(124, 112, 91, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+  transition: background-color 0.3s ease;
+}
+
+.finances-table tr:hover td {
+  background: rgba(231, 225, 211, 0.3);
+}
+
+.text-green {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.text-red {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* ===========================
+   RIDE HISTORY
+   =========================== */
+
+.ride-history-section {
+  margin-top: 2rem;
+  background: rgba(231, 225, 211, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ride-history-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: #1F2825;
+  font-weight: 700;
+}
+
+.ride-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ride-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 1.2rem;
+  border-left: 4px solid #7C705B;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ride-card:hover {
+  transform: translateX(5px);
+  box-shadow: 0 10px 25px rgba(124, 112, 91, 0.2);
+}
+
+.ride-card .ride-car {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1F2825;
+  margin-bottom: 0.5rem;
+}
+
+.ride-card .ride-path {
+  color: #7C705B;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.ride-card .ride-meta {
+  font-size: 0.9rem;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.ride-card .ride-date {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* ===========================
+   BUTTONS
+   =========================== */
+
+.edit-btn {
+  background: linear-gradient(135deg, #1F2825, #2a3530);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  margin: 0.5rem 0;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(31, 40, 37, 0.3);
+}
+
+.edit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.edit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(31, 40, 37, 0.4);
+}
+
+.edit-btn:hover::before {
+  left: 100%;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+  border-radius: 12px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  margin-top: 0.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+}
+
+.delete-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.delete-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+}
+
+.delete-btn:hover::before {
+  left: 100%;
+}
+
+/* ===========================
+   MODALS
+   =========================== */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  padding: 2.5rem;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+  animation: slideInScale 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.modal-content h2 {
+  margin: 0 0 1.5rem 0;
+  color: #1F2825;
+  font-weight: 700;
+  text-align: center;
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin: 0.5rem 0;
+  border-radius: 10px;
+  border: 1px solid rgba(124, 112, 91, 0.3);
+  font-family: 'Poppins', sans-serif;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+  outline: none;
+  border-color: #7C705B;
+  box-shadow: 0 0 0 3px rgba(124, 112, 91, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.modal-content button {
+  background: linear-gradient(135deg, #1F2825, #2a3530);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  width: 100%;
+  border-radius: 10px;
+  margin-top: 1rem;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-content button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.modal-content button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(31, 40, 37, 0.3);
+}
+
+.modal-content button:hover::before {
+  left: 100%;
+}
+
+#map {
+  width: 100%;
+  height: 250px;
+  margin-top: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(124, 112, 91, 0.3);
+}
+
+/* ===========================
+   ANIMATIONS
+   =========================== */
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+   =========================== */
+
+@media (max-width: 1024px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .finances-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .main-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+    margin-top: 80px;
+  }
+  
+  .account-container,
+  .cars-container,
+  .finances-container {
+    padding: 1.5rem;
+  }
+  
+  .finances-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .modal-content {
+    padding: 2rem;
+    margin: 1rem;
+  }
+  
+  .ride-card .ride-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    gap: 1rem;
+  }
+  
+  .account-container,
+  .cars-container,
+  .finances-container {
+    padding: 1rem;
+    border-radius: 15px;
+  }
+  
+  .profile-pic {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .info-group {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-content {
+    padding: 1.5rem;
+    border-radius: 15px;
+  }
+}

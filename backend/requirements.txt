@@ -1,0 +1,8 @@
+flask
+flask-cors
+flask-socketio
+eventlet
+pymongo
+werkzeug
+requests
+geopy==2.3.0
