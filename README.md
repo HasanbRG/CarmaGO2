@@ -114,7 +114,7 @@ mongod --dbpath /path/to/your/mongodb/data
 ##  How to Use the Application
 
 ### 1. Getting Started
-1. Open http://localhost:3000 in your browser
+1. Open (http://localhost:8080/signUppage.html) in your browser to start or run it via vs code live server
 2. Create an account by clicking "Sign Up"
 3. Fill in your details (First Name, Last Name, Email, Phone, Password)
 4. Log in with your credentials
@@ -208,7 +208,7 @@ The application consists of three Docker services:
    - Check system tray for Docker icon
 
 2. **Port conflicts**:
-   - Ensure ports 3000, 5001, and 27017 are not in use
+   - Ensure ports 8080, 5001, and 27017 are not in use
    - Use `docker-compose down` to stop existing containers
 
 3. **Build failures**:
